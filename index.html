@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>健身记录 2.0</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="title">健身记录</div>
+      <div class="subtitle">训练日 · 频率 · 趋势</div>
+    </header>
+
+    <!-- 记录页 -->
+    <section id="tab-record" class="tab">
+      <div class="card">
+        <div class="row">
+          <div class="field">
+            <label>日期</label>
+            <input id="recordDate" type="date" />
+          </div>
+          <div class="field">
+            <label>周目标</label>
+            <div class="inline">
+              <input id="weeklyGoal" type="number" min="1" max="14" step="1" />
+              <button class="btn btn-secondary btn-compact" onclick="saveWeeklyGoal()">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>添加动作</h2>
+
+        <label>训练部位</label>
+        <select id="muscle">
+          <option value="胸">胸</option>
+          <option value="背">背</option>
+          <option value="腿">腿</option>
+          <option value="肩">肩</option>
+          <option value="手臂">手臂</option>
+          <option value="核心">核心</option>
+          <option value="其他">其他</option>
+        </select>
+
+        <label>动作</label>
+        <input id="exercise" list="exerciseList" placeholder="输入或选择动作（如：卧推）" />
+        <datalist id="exerciseList"></datalist>
+
+        <div class="row">
+          <div class="field">
+            <label>重量(kg)</label>
+            <input id="weight" type="number" inputmode="decimal" placeholder="例如 60" />
+          </div>
+          <div class="field">
+            <label>次数</label>
+            <input id="reps" type="number" inputmode="numeric" placeholder="例如 8" />
+          </div>
+          <div class="field">
+            <label>组数</label>
+            <input id="sets" type="number" inputmode="numeric" placeholder="例如 4" />
+          </div>
+        </div>
+
+        <button class="btn" onclick="addEntry()">保存到当日训练</button>
+        <div class="hint">提示：同一天可以记录多个部位/多个动作。</div>
+      </div>
+
+      <div class="card">
+        <h2>今日训练（快速预览）</h2>
+        <div id="todayPreview" class="list"></div>
+      </div>
+    </section>
+
+    <!-- 分析页 -->
+    <section id="tab-analytics" class="tab hidden">
+      <div class="card">
+        <h2>训练频率</h2>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-title">本周训练天数</div>
+            <div id="mWeekDays" class="metric-value">-</div>
+          </div>
+          <div class="metric">
+            <div class="metric-title">最近7天训练天数</div>
+            <div id="mLast7" class="metric-value">-</div>
+          </div>
+          <div class="metric">
+            <div class="metric-title">最近30天训练天数</div>
+            <div id="mLast30" class="metric-value">-</div>
+          </div>
+        </div>
+
+        <div class="progress">
+          <div class="progress-top">
+            <div>周目标进度</div>
+            <div id="mGoalText" class="muted">-</div>
+          </div>
+          <div class="progress-bg">
+            <div id="mGoalFill" class="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>最近30天部位覆盖</h2>
+        <div id="muscleBars" class="bars"></div>
+      </div>
+
+      <div class="card">
+        <h2>重量趋势（按动作）</h2>
+        <div class="hint">规则：比较“最近5次平均重量” vs “之前5次平均重量”，给出 ↑ / → / ↓。</div>
+        <div id="trendList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- 历史页 -->
+    <section id="tab-history" class="tab hidden">
+      <div class="card">
+        <h2>训练历史</h2>
+        <div id="historyList" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h2>数据</h2>
+        <div class="center">
+          <button class="btn btn-secondary btn-compact" onclick="exportAll()">导出 JSON</button>
+          <button class="btn btn-secondary btn-compact" onclick="document.getElementById('fileInput').click()">导入 JSON</button>
+          <input id="fileInput" type="file" style="display:none" onchange="importAll(event)" />
+        </div>
+        <div class="hint">导入会覆盖当前数据（建议先导出备份）。</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部导航 -->
+  <nav class="bottom-nav">
+    <button id="nav-record" class="nav-item active" onclick="switchTab('record')">记录</button>
+    <button id="nav-analytics" class="nav-item" onclick="switchTab('analytics')">分析</button>
+    <button id="nav-history" class="nav-item" onclick="switchTab('history')">历史</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
