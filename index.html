@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>健身记录</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -16,9 +16,7 @@
 <p class="subtitle">训练管理系统</p>
 </header>
 
-<!-- 今日训练 -->
 <section id="page-today" class="page">
-
 <div class="card">
 <h2>今日训练</h2>
 
@@ -28,7 +26,7 @@
 <option>核心</option><option>其他</option>
 </select>
 
-<input id="exercise" list="exerciseList" placeholder="动作（如 卧推）">
+<input id="exercise" list="exerciseList" placeholder="动作">
 <datalist id="exerciseList"></datalist>
 
 <input id="weight" type="number" placeholder="重量 kg">
@@ -42,21 +40,18 @@
 <h2>今日预览</h2>
 <div id="todayPreview"></div>
 </div>
-
 </section>
 
-<!-- 分析 -->
 <section id="page-analysis" class="page hidden">
-
 <div class="card">
 <h2>训练统计</h2>
 <p>最近7天训练天数：<b id="days7"></b></p>
 
 <h3>最近7天部位分布</h3>
-<canvas id="pie7"></canvas>
+<canvas id="bar7"></canvas>
 
 <h3>最近30天部位分布</h3>
-<canvas id="pie30"></canvas>
+<canvas id="bar30"></canvas>
 </div>
 
 <div class="card">
@@ -64,10 +59,8 @@
 <select id="trendSelect" onchange="renderTrend()"></select>
 <canvas id="trendChart"></canvas>
 </div>
-
 </section>
 
-<!-- 极限 -->
 <section id="page-max" class="page hidden">
 <div class="card">
 <h2>极限重量（按1RM排序）</h2>

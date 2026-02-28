@@ -1,7 +1,7 @@
 const STORAGE="fitness-data";
 let workouts=JSON.parse(localStorage.getItem(STORAGE))||[];
 
-let pie7Chart,pie30Chart,trendChart;
+let bar7Chart,bar30Chart,trendChart;
 
 function save(){localStorage.setItem(STORAGE,JSON.stringify(workouts));}
 function today(){return new Date().toISOString().slice(0,10);}
@@ -32,18 +32,6 @@ document.getElementById("sets").value="";
 renderAll();
 }
 
-/* 动作沉淀 */
-function renderExerciseList(){
-const list=document.getElementById("exerciseList");
-const unique=[...new Set(workouts.map(w=>w.exercise))];
-list.innerHTML="";
-unique.sort().forEach(e=>{
-const option=document.createElement("option");
-option.value=e;
-list.appendChild(option);
-});
-}
-
 /* 今日 */
 function renderToday(){
 const div=document.getElementById("todayPreview");
@@ -58,6 +46,17 @@ ${w.muscle} · ${w.exercise} ${w.weight}kg × ${w.reps} × ${w.sets}
 renderExerciseList();
 }
 
+function renderExerciseList(){
+const list=document.getElementById("exerciseList");
+const unique=[...new Set(workouts.map(w=>w.exercise))];
+list.innerHTML="";
+unique.sort().forEach(e=>{
+const option=document.createElement("option");
+option.value=e;
+list.appendChild(option);
+});
+}
+
 /* 分析 */
 function renderAnalysis(){
 const now=new Date();
@@ -69,44 +68,48 @@ let days7=new Set();
 
 workouts.forEach(w=>{
 const d=new Date(w.date);
-if(d>=last7){
-m7[w.muscle]=(m7[w.muscle]||0)+1;
-days7.add(w.date);
-}
-if(d>=last30){
-m30[w.muscle]=(m30[w.muscle]||0)+1;
-}
+if(d>=last7){m7[w.muscle]=(m7[w.muscle]||0)+1;days7.add(w.date);}
+if(d>=last30){m30[w.muscle]=(m30[w.muscle]||0)+1;}
 });
 
 document.getElementById("days7").innerText=days7.size;
 
-renderPie("pie7",m7,"最近7天部位分布");
-renderPie("pie30",m30,"最近30天部位分布");
+renderBar("bar7",m7,true);
+renderBar("bar30",m30,false);
 
 renderTrendSelect();
 }
 
-function renderPie(canvasId,data,title){
+function renderBar(canvasId,data,store){
 const ctx=document.getElementById(canvasId);
+const sorted=Object.entries(data).sort((a,b)=>b[1]-a[1]);
 
-if(canvasId==="pie7" && pie7Chart)pie7Chart.destroy();
-if(canvasId==="pie30" && pie30Chart)pie30Chart.destroy();
+if(canvasId==="bar7" && bar7Chart)bar7Chart.destroy();
+if(canvasId==="bar30" && bar30Chart)bar30Chart.destroy();
 
-pie7Chart=new Chart(ctx,{
-type:"pie",
+const chart=new Chart(ctx,{
+type:"bar",
 data:{
-labels:Object.keys(data),
+labels:sorted.map(e=>e[0]),
 datasets:[{
-data:Object.values(data),
-backgroundColor:["#60a5fa","#34d399","#f87171","#fbbf24","#a78bfa","#f472b6"]
+data:sorted.map(e=>e[1]),
+backgroundColor:"#3b82f6",
+borderRadius:6
 }]
 },
 options:{
-plugins:{title:{display:true,text:title}}
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:true,ticks:{stepSize:1}}
+}
 }
 });
+
+if(canvasId==="bar7")bar7Chart=chart;
+if(canvasId==="bar30")bar30Chart=chart;
 }
 
+/* 重量趋势（双轴） */
 function renderTrendSelect(){
 const sel=document.getElementById("trendSelect");
 const set=[...new Set(workouts.map(w=>w.exercise))];
@@ -121,25 +124,51 @@ const data=workouts.filter(w=>w.exercise===ex)
 .sort((a,b)=>a.date.localeCompare(b.date))
 .slice(-5);
 
-const ctx=document.getElementById("trendChart");
+if(!data.length)return;
 
+const weights=data.map(d=>d.weight);
+const rm=data.map(d=>calc1RM(d.weight,d.reps));
+
+const max=Math.max(...weights);
+const min=Math.min(...weights);
+
+const ctx=document.getElementById("trendChart");
 if(trendChart)trendChart.destroy();
 
 trendChart=new Chart(ctx,{
-type:"line",
 data:{
 labels:data.map(d=>d.date),
-datasets:[{
-label:ex+" 重量趋势",
-data:data.map(d=>d.weight),
-borderColor:"#2563eb",
-backgroundColor:"rgba(37,99,235,0.1)",
-fill:true,
-tension:0.3
-}]
+datasets:[
+{
+type:"bar",
+label:"重量 kg",
+data:weights,
+backgroundColor:"#3b82f6",
+yAxisID:"y"
+},
+{
+type:"line",
+label:"估算1RM",
+data:rm,
+borderColor:"#ef4444",
+tension:0.3,
+yAxisID:"y1"
+}
+]
 },
 options:{
-scales:{y:{beginAtZero:false}}
+responsive:true,
+scales:{
+y:{
+position:"left",
+min:min*0.9,
+max:max*1.1
+},
+y1:{
+position:"right",
+grid:{drawOnChartArea:false}
+}
+}
 }
 });
 }
