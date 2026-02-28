@@ -11,8 +11,8 @@
 <div class="container">
 
 <header>
-  <h1>健身记录</h1>
-  <p class="subtitle">今日训练 · 历史记录 · 分析报告 · 极限重量</p>
+<h1>健身记录</h1>
+<p class="subtitle">训练管理系统</p>
 </header>
 
 <!-- 今日训练 -->
@@ -21,88 +21,74 @@
 <div class="card">
 <h2>今日训练</h2>
 
-<div class="form-grid">
-
 <select id="muscle">
-<option value="胸">胸</option>
-<option value="背">背</option>
-<option value="腿">腿</option>
-<option value="肩">肩</option>
-<option value="手臂">手臂</option>
-<option value="核心">核心</option>
-<option value="其他">其他</option>
+<option>胸</option><option>背</option><option>腿</option>
+<option>肩</option><option>手臂</option><option>核心</option><option>其他</option>
 </select>
 
-<input id="exercise" list="exerciseList" placeholder="动作（如 卧推）" />
+<input id="exercise" list="exerciseList" placeholder="动作（如 卧推）">
 <datalist id="exerciseList"></datalist>
 
-<input id="weight" type="number" placeholder="重量 kg" />
-<input id="reps" type="number" placeholder="次数" />
-<input id="sets" type="number" placeholder="组数" />
-
-</div>
+<input id="weight" type="number" placeholder="重量 kg">
+<input id="reps" type="number" placeholder="次数">
+<input id="sets" type="number" placeholder="组数">
 
 <button class="primary" onclick="addWorkout()">保存记录</button>
 </div>
 
 <div class="card">
-<h2>今日训练（预览）</h2>
+<h2>今日预览</h2>
 <div id="todayPreview"></div>
 </div>
 
 </section>
 
-<!-- 历史记录 -->
+<!-- 历史 -->
 <section id="page-history" class="page hidden">
-
 <div class="card">
 <h2>历史记录</h2>
-
-<input type="date" id="historyDate" onchange="renderHistory()" />
-<button onclick="clearDate()">清除筛选</button>
-
+<input type="date" id="historyDate" onchange="renderHistory()">
+<button onclick="clearDate()">清除</button>
 <div id="historyList"></div>
 </div>
-
 </section>
 
 <!-- 分析 -->
 <section id="page-analysis" class="page hidden">
-
 <div class="card">
 <h2>训练统计</h2>
-<p>最近7天训练天数：<b id="days7">-</b></p>
-<p>最近30天训练天数：<b id="days30">-</b></p>
+<p>最近7天训练天数：<b id="days7"></b></p>
+<p>最近30天训练天数：<b id="days30"></b></p>
 
-<canvas id="chart7" height="180"></canvas>
-<canvas id="chart30" height="180"></canvas>
+<h3>最近7天部位分布</h3>
+<canvas id="pie7" height="200"></canvas>
+
+<h3>最近30天部位分布</h3>
+<canvas id="pie30" height="200"></canvas>
 </div>
 
 <div class="card">
-<h2>重量趋势</h2>
-<select id="trendExercise" onchange="renderTrend()"></select>
-<canvas id="trendChart" height="200"></canvas>
+<h2>重量趋势（最近5次）</h2>
+<select id="trendSelect" onchange="renderTrend()"></select>
+<canvas id="trendChart" height="220"></canvas>
 </div>
-
 </section>
 
 <!-- 极限重量 -->
 <section id="page-max" class="page hidden">
-
 <div class="card">
-<h2>极限重量</h2>
+<h2>极限重量（按1RM排序）</h2>
 <div id="maxList"></div>
 </div>
-
 </section>
 
 </div>
 
 <nav class="bottom-nav">
-<button class="active" onclick="switchPage('page-today', this)">今日训练</button>
-<button onclick="switchPage('page-history', this)">历史记录</button>
-<button onclick="switchPage('page-analysis', this)">分析报告</button>
-<button onclick="switchPage('page-max', this)">极限重量</button>
+<button class="active" onclick="switchPage('page-today',this)">今日</button>
+<button onclick="switchPage('page-history',this)">历史</button>
+<button onclick="switchPage('page-analysis',this)">分析</button>
+<button onclick="switchPage('page-max',this)">极限</button>
 </nav>
 
 <script src="app.js"></script>
