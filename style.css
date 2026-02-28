@@ -4,86 +4,65 @@ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto;
 background:#f4f6f8;
 color:#111;
 }
-
 .container{
 max-width:680px;
 margin:auto;
-padding:28px 20px 110px;
+padding:24px 18px 80px;
 }
+h1{margin:0;font-size:28px;font-weight:700;}
+.subtitle{color:#8a8f98;font-size:13px;margin-top:6px;}
 
-h1{
-margin:0;
-font-size:30px;
-font-weight:700;
+.tabs{
+display:flex;
+overflow:auto;
+margin:18px 0;
 }
-
-.subtitle{
-margin-top:6px;
-font-size:14px;
-color:#8a8f98;
-}
-
-.card{
-background:#ffffff;
-border-radius:22px;
-padding:22px;
-margin-top:20px;
-border:1px solid #edf0f3;
-}
-
-.card h2{
-margin:0 0 16px 0;
-font-size:18px;
-font-weight:600;
-}
-
-.card h3{
-margin-top:26px;
-margin-bottom:12px;
-font-size:15px;
-font-weight:600;
-color:#444;
-}
-
-input,select{
-width:100%;
-padding:14px 16px;
-border-radius:16px;
-border:1px solid #e3e7ec;
-background:#f9fafb;
-font-size:15px;
-margin-top:12px;
-}
-
-input:focus,select:focus{
-outline:none;
-border-color:#2E7CF6;
-background:#fff;
-}
-
-button{
-width:100%;
-padding:14px;
-margin-top:16px;
-border-radius:18px;
+.tabs button{
+flex:1;
+padding:10px;
 border:none;
-font-size:15px;
-font-weight:600;
-cursor:pointer;
+background:#e9edf2;
+margin-right:6px;
+border-radius:16px;
+font-size:13px;
 }
-
-button.primary{
+.tabs button.active{
 background:#2E7CF6;
 color:white;
 }
 
-.record{
-padding:12px 0;
-border-bottom:1px solid #f0f2f5;
-font-size:14px;
-color:#333;
+.card{
+background:white;
+border-radius:20px;
+padding:18px;
+margin-top:16px;
+border:1px solid #edf0f3;
 }
 
-canvas{
-margin-top:14px;
+input,select{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:14px;
+border:1px solid #e3e7ec;
+background:#f9fafb;
 }
+
+button.primary{
+margin-top:14px;
+padding:12px;
+border-radius:16px;
+border:none;
+background:#2E7CF6;
+color:white;
+width:100%;
+}
+
+.record{
+padding:8px 0;
+border-bottom:1px solid #f0f2f5;
+font-size:14px;
+}
+
+.hidden{display:none;}
+canvas{margin-top:10px;}

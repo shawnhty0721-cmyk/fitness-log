@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>训练日志</title>
-
-<link rel="stylesheet" href="style.css" />
-
+<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -16,38 +14,70 @@
 <h1>训练日志</h1>
 <div class="subtitle">Keep × iOS 极简版</div>
 
+<!-- 底部导航 -->
+<nav class="tabs">
+<button class="active" onclick="switchTab('today',this)">今日训练</button>
+<button onclick="switchTab('history',this)">历史记录</button>
+<button onclick="switchTab('analysis',this)">分析报告</button>
+<button onclick="switchTab('max',this)">极限重量</button>
+</nav>
+
 <!-- 今日训练 -->
+<section id="today" class="tab">
 <div class="card">
-<h2>今日训练</h2>
-
-<input id="exercise" placeholder="动作名称（如：卧推）" />
-<input id="weight" type="number" placeholder="重量（kg）" />
-<input id="reps" type="number" placeholder="次数" />
-<input id="sets" type="number" placeholder="组数" />
-
-<button class="primary" onclick="addRecord()">添加记录</button>
-
-<div id="preview"></div>
+<input id="exercise" placeholder="动作名称">
+<select id="muscle">
+<option>胸</option><option>背</option><option>腿</option>
+<option>肩</option><option>手臂</option>
+<option>核心</option><option>其他</option>
+</select>
+<input id="weight" type="number" placeholder="重量 kg">
+<input id="reps" type="number" placeholder="次数">
+<input id="sets" type="number" placeholder="组数">
+<button class="primary" onclick="addRecord()">保存记录</button>
 </div>
+<div class="card">
+<h2>今日预览</h2>
+<div id="todayList"></div>
+</div>
+</section>
 
 <!-- 历史记录 -->
+<section id="history" class="tab hidden">
 <div class="card">
 <h2>历史记录</h2>
-<div id="history"></div>
+<div id="historyList"></div>
 </div>
+</section>
 
 <!-- 分析报告 -->
+<section id="analysis" class="tab hidden">
 <div class="card">
-<h2>分析报告</h2>
+<h2>最近7天</h2>
+<p>训练天数：<b id="days7"></b></p>
+<canvas id="bar7"></canvas>
+</div>
 
-<h3>最近7天部位分布</h3>
-<canvas id="pie7"></canvas>
+<div class="card">
+<h2>最近30天</h2>
+<p>训练天数：<b id="days30"></b></p>
+<canvas id="bar30"></canvas>
+</div>
 
-<h3>重量趋势（最近5次）</h3>
+<div class="card">
+<h2>重量趋势（最近5次）</h2>
 <select id="trendSelect" onchange="renderTrend()"></select>
 <canvas id="trendChart"></canvas>
-
 </div>
+</section>
+
+<!-- 极限重量 -->
+<section id="max" class="tab hidden">
+<div class="card">
+<h2>极限重量</h2>
+<div id="maxList"></div>
+</div>
+</section>
 
 </div>
 
