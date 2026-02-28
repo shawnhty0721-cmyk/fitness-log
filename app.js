@@ -1,45 +1,38 @@
-const STORAGE="fitness-data";
-let workouts=JSON.parse(localStorage.getItem(STORAGE))||[];
+const STORAGE = "fitness-data";
+let workouts = JSON.parse(localStorage.getItem(STORAGE)) || [];
 
 function save(){localStorage.setItem(STORAGE,JSON.stringify(workouts));}
 function today(){return new Date().toISOString().slice(0,10);}
 function calc1RM(w,r){return +(w*(1+r/30)).toFixed(1);}
 function calcLoad(w){return w.weight*w.reps*w.sets;}
 
+/* ================= 添加记录 ================= */
+
 function addWorkout(){
-const muscle=muscleEl().value;
-const exercise=exerciseEl().value.trim();
-const weight=+weightEl().value;
-const reps=+repsEl().value;
-const sets=+setsEl().value;
+const muscle=document.getElementById("muscle").value;
+const exercise=document.getElementById("exercise").value.trim();
+const weight=+document.getElementById("weight").value;
+const reps=+document.getElementById("reps").value;
+const sets=+document.getElementById("sets").value;
+
 if(!exercise||!weight||!reps||!sets){alert("请填写完整");return;}
 
-const prevMax=Math.max(
-...workouts.filter(w=>w.exercise===exercise).map(w=>w.weight),0);
+const prevMax=Math.max(...workouts.filter(w=>w.exercise===exercise).map(w=>w.weight),0);
 
 workouts.push({id:Date.now(),date:today(),muscle,exercise,weight,reps,sets});
 save();
-clearInputs();
 
-if(weight>prevMax && prevMax>0){
-alert("🎉 新PR诞生！");
-}
+if(weight>prevMax && prevMax>0) alert("🎉 新PR！");
+
+document.getElementById("exercise").value="";
+document.getElementById("weight").value="";
+document.getElementById("reps").value="";
+document.getElementById("sets").value="";
 
 renderAll();
 }
 
-function muscleEl(){return document.getElementById("muscle");}
-function exerciseEl(){return document.getElementById("exercise");}
-function weightEl(){return document.getElementById("weight");}
-function repsEl(){return document.getElementById("reps");}
-function setsEl(){return document.getElementById("sets");}
-
-function clearInputs(){
-exerciseEl().value="";
-weightEl().value="";
-repsEl().value="";
-setsEl().value="";
-}
+/* ================= 动作沉淀 ================= */
 
 function renderExerciseList(){
 const list=document.getElementById("exerciseList");
@@ -53,7 +46,7 @@ list.appendChild(option);
 });
 }
 
-/* ========= 今日 ========= */
+/* ================= 今日 ================= */
 
 function renderToday(){
 const div=document.getElementById("todayPreview");
@@ -75,83 +68,144 @@ save();
 renderAll();
 }
 
-/* ========= 周期分析 ========= */
+/* ================= 饼图 ================= */
 
-function renderAnalysis(){
-
-const now=new Date();
-const last7=new Date(); last7.setDate(now.getDate()-6);
-const prev7=new Date(); prev7.setDate(now.getDate()-13);
-
-let load7=0, loadPrev=0;
-let days7=new Set();
-let dailyLoad={};
-
-workouts.forEach(w=>{
-const d=new Date(w.date);
-const load=calcLoad(w);
-
-if(d>=last7){
-load7+=load;
-days7.add(w.date);
-}
-else if(d>=prev7 && d<last7){
-loadPrev+=load;
-}
-
-if(!dailyLoad[w.date])dailyLoad[w.date]=0;
-dailyLoad[w.date]+=load;
-});
-
-document.getElementById("days7").innerText=days7.size;
-
-/* 强度判断 */
-let msg="";
-if(loadPrev>0){
-const diff=(load7-loadPrev)/loadPrev;
-if(diff>0.4)msg="⚠️ 负荷增长过快，注意恢复";
-else if(diff>0.1)msg="📈 训练强度提升";
-else if(diff<-0.2)msg="📉 强度下降明显";
-else msg="✅ 强度稳定";
-}
-
-document.getElementById("days30").innerText=msg;
-
-/* 负荷曲线 */
-drawLoadTrend(dailyLoad);
-
-renderTrendSelect();
-}
-
-/* ========= 负荷趋势图 ========= */
-
-function drawLoadTrend(data){
-
-const canvas=document.getElementById("trendChart");
+function drawPie(canvasId,data,title){
+const canvas=document.getElementById(canvasId);
 const ctx=canvas.getContext("2d");
-ctx.clearRect(0,0,400,220);
+ctx.clearRect(0,0,canvas.width,canvas.height);
 
-const entries=Object.entries(data)
-.sort((a,b)=>a[0].localeCompare(b[0]))
-.slice(-14);
+ctx.font="14px sans-serif";
+ctx.fillText(title,10,18);
 
-if(entries.length===0)return;
+const total=Object.values(data).reduce((a,b)=>a+b,0);
+if(!total){ctx.fillText("暂无数据",10,40);return;}
 
-const max=Math.max(...entries.map(e=>e[1]));
+let start=0;
+const colors=["#60a5fa","#34d399","#f87171","#fbbf24","#a78bfa","#f472b6"];
+let i=0,yLegend=30;
+
+for(let key in data){
+const val=data[key];
+const percent=Math.round(val/total*100);
+
+const slice=val/total*2*Math.PI;
+ctx.fillStyle=colors[i];
+ctx.beginPath();
+ctx.moveTo(150,120);
+ctx.arc(150,120,80,start,start+slice);
+ctx.closePath();
+ctx.fill();
+
+ctx.fillStyle="#111";
+ctx.fillRect(300,yLegend,12,12);
+ctx.fillText(`${key} ${val}次 (${percent}%)`,320,yLegend+10);
+
+start+=slice;
+i++;yLegend+=20;
+}
+}
+
+/* ================= 折线图 ================= */
+
+function drawLine(canvasId,data,title){
+const canvas=document.getElementById(canvasId);
+const ctx=canvas.getContext("2d");
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.font="14px sans-serif";
+ctx.fillText(title,10,18);
+
+if(!data.length){
+ctx.fillText("暂无数据",10,40);
+return;
+}
+
+const max=Math.max(...data.map(d=>d.value));
+const min=Math.min(...data.map(d=>d.value));
+
+ctx.strokeStyle="#ddd";
+ctx.beginPath();
+ctx.moveTo(40,30);
+ctx.lineTo(40,180);
+ctx.lineTo(360,180);
+ctx.stroke();
+
+ctx.fillText(max,5,40);
+ctx.fillText(min,5,180);
 
 ctx.beginPath();
-entries.forEach((e,i)=>{
-const x=40+i*20;
-const y=180-(e[1]/max)*140;
+data.forEach((d,i)=>{
+const x=60+i*(260/(data.length-1||1));
+const y=180-(d.value/max)*140;
 if(i===0)ctx.moveTo(x,y);
 else ctx.lineTo(x,y);
 });
 ctx.strokeStyle="#2563eb";
 ctx.lineWidth=2;
 ctx.stroke();
+
+data.forEach((d,i)=>{
+const x=60+i*(260/(data.length-1||1));
+const y=180-(d.value/max)*140;
+ctx.beginPath();
+ctx.arc(x,y,4,0,2*Math.PI);
+ctx.fillStyle="#2563eb";
+ctx.fill();
+ctx.fillText(d.value,x-10,y-8);
+});
 }
 
-/* ========= 极限 ========= */
+/* ================= 分析 ================= */
+
+function renderAnalysis(){
+const now=new Date();
+const last7=new Date();last7.setDate(now.getDate()-6);
+const last30=new Date();last30.setDate(now.getDate()-29);
+
+let m7={},m30={};
+let days7=new Set();
+
+workouts.forEach(w=>{
+const d=new Date(w.date);
+if(d>=last7){
+m7[w.muscle]=(m7[w.muscle]||0)+1;
+days7.add(w.date);
+}
+if(d>=last30){
+m30[w.muscle]=(m30[w.muscle]||0)+1;
+}
+});
+
+document.getElementById("days7").innerText=days7.size;
+
+drawPie("pie7",m7,"最近7天部位分布");
+drawPie("pie30",m30,"最近30天部位分布");
+
+renderTrendSelect();
+}
+
+/* ================= 重量趋势 ================= */
+
+function renderTrendSelect(){
+const sel=document.getElementById("trendSelect");
+const set=[...new Set(workouts.map(w=>w.exercise))];
+sel.innerHTML="";
+set.forEach(e=>sel.innerHTML+=`<option>${e}</option>`);
+renderTrend();
+}
+
+function renderTrend(){
+const ex=document.getElementById("trendSelect").value;
+const data=workouts.filter(w=>w.exercise===ex)
+.sort((a,b)=>a.date.localeCompare(b.date))
+.slice(-5)
+.map(w=>({date:w.date,value:w.weight}));
+
+drawLine("trendChart",data,ex+" 最近5次重量");
+}
+
+/* ================= 极限重量 ================= */
 
 function renderMax(){
 const div=document.getElementById("maxList");
