@@ -53,6 +53,23 @@ body{
   border:1px solid #edf0f3;
 }
 
+.card h2{
+  margin:0 0 12px 0;
+  font-size:16px;
+  font-weight:700;
+}
+
+.subcard{
+  margin-top:14px;
+}
+
+.subcard h3{
+  margin:0 0 6px 0;
+  font-size:14px;
+  font-weight:700;
+  color:#222;
+}
+
 .label{
   display:block;
   margin-top:14px;
@@ -73,9 +90,7 @@ body{
   font-size:15px;
 }
 
-.hidden{
-  display:none;
-}
+.hidden{ display:none; }
 
 button.primary{
   width:100%;
@@ -90,29 +105,85 @@ button.primary{
   cursor:pointer;
 }
 
-.record{
-  padding:10px 0;
-  border-bottom:1px solid #f0f2f5;
-  position:relative;
+button.ghost{
+  height:46px;
+  padding:0 14px;
+  border-radius:14px;
+  border:1px solid #e3e7ec;
+  background:#fff;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
 }
 
-.record:last-child{
-  border-bottom:none;
+/* 关键：去掉“网格线/分割线”，改用留白 */
+.list{
+  margin-top:8px;
+}
+
+.item{
+  padding:10px 0;
+}
+
+.item + .item{
+  margin-top:8px;
+}
+
+.item-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.item-main{
+  font-size:14px;
+  line-height:1.35;
+  color:#333;
+  flex:1;
+  min-width:0;
+}
+
+.item-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:#8a8f98;
+}
+
+.group-title{
+  margin-top:12px;
+  font-size:13px;
+  font-weight:700;
+  color:#222;
 }
 
 .delete-btn{
-  position:absolute;
-  right:0;
-  top:10px;
   color:#ff4d4f;
   font-size:13px;
+  font-weight:600;
   cursor:pointer;
+  flex:0 0 auto;
 }
 
 .metric{
-  margin:6px 0;
+  margin:6px 0 0 0;
+  color:#555;
+  font-size:14px;
 }
 
 canvas{
   margin-top:10px;
+}
+
+/* 历史日期栏 */
+.history-bar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-top:8px;
+}
+
+.history-bar .control{
+  margin-top:0;
 }
