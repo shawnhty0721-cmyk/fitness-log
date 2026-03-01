@@ -29,28 +29,29 @@
     <h2>今日训练</h2>
 
     <label class="label">训练部位</label>
-    <select id="muscle">
-      <option>胸</option>
-      <option>背</option>
-      <option>腿</option>
-      <option>肩</option>
-      <option>手臂</option>
-      <option>核心</option>
-      <option>其他</option>
+    <select id="muscle" class="control">
+      <option>胸</option><option>背</option><option>腿</option>
+      <option>肩</option><option>手臂</option><option>核心</option><option>其他</option>
+    </select>
+
+    <!-- 新增：动作历史下拉（安卓最稳） -->
+    <label class="label">从历史动作选择（可选）</label>
+    <select id="exerciseSelect" class="control" onchange="pickExerciseFromSelect()">
+      <option value="">（选择后会自动填入下面的动作名称）</option>
     </select>
 
     <label class="label">动作名称</label>
-    <input id="exercise" list="exerciseList" placeholder="例如：卧推">
+    <input id="exercise" class="control" list="exerciseList" placeholder="例如：卧推">
     <datalist id="exerciseList"></datalist>
 
     <label class="label">重量 (kg)</label>
-    <input id="weight" type="number">
+    <input id="weight" class="control" type="number" inputmode="decimal" placeholder="60">
 
     <label class="label">次数</label>
-    <input id="reps" type="number">
+    <input id="reps" class="control" type="number" inputmode="numeric" placeholder="8">
 
     <label class="label">组数</label>
-    <input id="sets" type="number">
+    <input id="sets" class="control" type="number" inputmode="numeric" placeholder="3">
 
     <button class="primary" onclick="addRecord()">保存记录</button>
   </div>
@@ -74,19 +75,19 @@
 
   <div class="card">
     <h2>最近7天</h2>
-    <p>训练天数：<b id="days7"></b></p>
+    <p class="metric">训练天数：<b id="days7">0</b></p>
     <canvas id="bar7"></canvas>
   </div>
 
   <div class="card">
     <h2>最近30天</h2>
-    <p>训练天数：<b id="days30"></b></p>
+    <p class="metric">训练天数：<b id="days30">0</b></p>
     <canvas id="bar30"></canvas>
   </div>
 
   <div class="card">
     <h2>重量趋势（最近5次）</h2>
-    <select id="trendSelect" onchange="renderTrend()"></select>
+    <select id="trendSelect" class="control" onchange="renderTrend()"></select>
     <canvas id="trendChart"></canvas>
   </div>
 

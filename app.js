@@ -1,188 +1,340 @@
-const STORAGE="fitness-data";
-let records=JSON.parse(localStorage.getItem(STORAGE))||[];
+const STORAGE = "fitness-data";
+let records = JSON.parse(localStorage.getItem(STORAGE)) || [];
 
-let bar7Chart,bar30Chart,trendChart;
+let bar7Chart = null;
+let bar30Chart = null;
+let trendChart = null;
 
-function save(){
-localStorage.setItem(STORAGE,JSON.stringify(records));
+function save() {
+  localStorage.setItem(STORAGE, JSON.stringify(records));
 }
 
-function today(){
-return new Date().toISOString().slice(0,10);
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function switchTab(id,btn){
-document.querySelectorAll(".tab").forEach(t=>t.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
-document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-btn.classList.add("active");
-renderAll();
+function safeDate(d) {
+  return new Date(d + "T00:00:00");
 }
 
-function addRecord(){
-const exercise=document.getElementById("exercise").value.trim();
-const muscle=document.getElementById("muscle").value;
-const weight=+document.getElementById("weight").value;
-const reps=+document.getElementById("reps").value;
-const sets=+document.getElementById("sets").value;
-
-if(!exercise||!weight||!reps||!sets)return;
-
-records.push({
-id:Date.now(),
-date:today(),
-exercise,muscle,weight,reps,sets
-});
-
-save();
-renderAll();
-
-document.getElementById("exercise").value="";
-document.getElementById("weight").value="";
-document.getElementById("reps").value="";
-document.getElementById("sets").value="";
+function switchTab(id, btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderAll();
 }
 
-function renderExerciseList(){
-const list=document.getElementById("exerciseList");
-const unique=[...new Set(records.map(r=>r.exercise))];
-list.innerHTML="";
-unique.forEach(ex=>{
-const opt=document.createElement("option");
-opt.value=ex;
-list.appendChild(opt);
-});
+/* =======================
+   动作历史：datalist + select
+   ======================= */
+
+function getUniqueExercises() {
+  return [...new Set(records.map(r => r.exercise).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "zh"));
 }
 
-function renderToday(){
-const div=document.getElementById("todayList");
-div.innerHTML="";
-records.filter(r=>r.date===today())
-.forEach(r=>{
-div.innerHTML+=`<div class="record">
-${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
-</div>`;
-});
+function renderExerciseHistory() {
+  // datalist
+  const list = document.getElementById("exerciseList");
+  if (list) {
+    const exs = getUniqueExercises();
+    list.innerHTML = "";
+    exs.forEach(ex => {
+      const opt = document.createElement("option");
+      opt.value = ex;
+      list.appendChild(opt);
+    });
+  }
+
+  // select（安卓更稳）
+  const sel = document.getElementById("exerciseSelect");
+  if (sel) {
+    const current = sel.value;
+    const exs = getUniqueExercises();
+
+    sel.innerHTML = `<option value="">（选择后会自动填入下面的动作名称）</option>`;
+    exs.forEach(ex => {
+      const opt = document.createElement("option");
+      opt.value = ex;
+      opt.textContent = ex;
+      sel.appendChild(opt);
+    });
+
+    // 尝试保留之前选择
+    if (exs.includes(current)) sel.value = current;
+  }
 }
 
-function renderHistory(){
-const div=document.getElementById("historyList");
-div.innerHTML="";
-records.slice().reverse().forEach(r=>{
-div.innerHTML+=`<div class="record">
-${r.date} - ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
-</div>`;
-});
+function pickExerciseFromSelect() {
+  const sel = document.getElementById("exerciseSelect");
+  const input = document.getElementById("exercise");
+  if (!sel || !input) return;
+  if (sel.value) input.value = sel.value;
 }
 
-function renderAnalysis(){
-const now=new Date();
-const last7=new Date();last7.setDate(now.getDate()-6);
-const last30=new Date();last30.setDate(now.getDate()-29);
+/* =======================
+   添加记录
+   ======================= */
 
-let m7={},m30={},days7=new Set(),days30=new Set();
+function addRecord() {
+  const exercise = document.getElementById("exercise").value.trim();
+  const muscle = document.getElementById("muscle").value;
+  const weight = Number(document.getElementById("weight").value);
+  const reps = Number(document.getElementById("reps").value);
+  const sets = Number(document.getElementById("sets").value);
 
-records.forEach(r=>{
-const d=new Date(r.date);
-if(d>=last7){m7[r.muscle]=(m7[r.muscle]||0)+1;days7.add(r.date);}
-if(d>=last30){m30[r.muscle]=(m30[r.muscle]||0)+1;days30.add(r.date);}
-});
+  if (!exercise || !weight || !reps || !sets) {
+    alert("请填写完整");
+    return;
+  }
 
-document.getElementById("days7").innerText=days7.size;
-document.getElementById("days30").innerText=days30.size;
+  records.push({
+    id: Date.now(),
+    date: todayStr(),
+    exercise,
+    muscle,
+    weight,
+    reps,
+    sets
+  });
 
-renderBar("bar7",m7);
-renderBar("bar30",m30);
-renderTrendSelect();
+  save();
+
+  // 清空输入
+  document.getElementById("exercise").value = "";
+  document.getElementById("weight").value = "";
+  document.getElementById("reps").value = "";
+  document.getElementById("sets").value = "";
+  const sel = document.getElementById("exerciseSelect");
+  if (sel) sel.value = "";
+
+  renderAll();
 }
 
-function renderBar(id,data){
-const ctx=document.getElementById(id);
-const sorted=Object.entries(data).sort((a,b)=>b[1]-a[1]);
+/* =======================
+   今日预览
+   ======================= */
 
-if(id==="bar7"&&bar7Chart)bar7Chart.destroy();
-if(id==="bar30"&&bar30Chart)bar30Chart.destroy();
+function renderToday() {
+  const div = document.getElementById("todayList");
+  if (!div) return;
+  div.innerHTML = "";
 
-const chart=new Chart(ctx,{
-type:"bar",
-data:{
-labels:sorted.map(e=>e[0]),
-datasets:[{
-data:sorted.map(e=>e[1]),
-backgroundColor:"#2E7CF6",
-borderRadius:6
-}]
-},
-options:{
-plugins:{legend:{display:false}},
-scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}
-}
-});
+  const t = todayStr();
+  const todays = records.filter(r => r.date === t);
 
-if(id==="bar7")bar7Chart=chart;
-if(id==="bar30")bar30Chart=chart;
-}
+  if (todays.length === 0) {
+    div.innerHTML = `<div class="small">今天还没有记录</div>`;
+    return;
+  }
 
-function renderTrendSelect(){
-const sel=document.getElementById("trendSelect");
-const set=[...new Set(records.map(r=>r.exercise))];
-sel.innerHTML="";
-set.forEach(e=>sel.innerHTML+=`<option>${e}</option>`);
-renderTrend();
+  todays.forEach(r => {
+    div.innerHTML += `
+      <div class="record">
+        ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
+      </div>
+    `;
+  });
 }
 
-function renderTrend(){
-const ex=document.getElementById("trendSelect").value;
-const data=records.filter(r=>r.exercise===ex)
-.sort((a,b)=>a.date.localeCompare(b.date))
-.slice(-5);
+/* =======================
+   历史记录（简单倒序）
+   ======================= */
 
-if(!data.length)return;
+function renderHistory() {
+  const div = document.getElementById("historyList");
+  if (!div) return;
+  div.innerHTML = "";
 
-const ctx=document.getElementById("trendChart");
-if(trendChart)trendChart.destroy();
+  const data = records.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  if (data.length === 0) {
+    div.innerHTML = `<div class="small">暂无记录</div>`;
+    return;
+  }
 
-trendChart=new Chart(ctx,{
-type:"bar",
-data:{
-labels:data.map(d=>d.date),
-datasets:[{
-label:"重量 kg",
-data:data.map(d=>d.weight),
-backgroundColor:"#2E7CF6",
-borderRadius:6
-}]
-},
-options:{scales:{y:{beginAtZero:false}}}
-});
+  data.forEach(r => {
+    div.innerHTML += `
+      <div class="record">
+        ${r.date} - ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
+      </div>
+    `;
+  });
 }
 
-function renderMax(){
-const div=document.getElementById("maxList");
-div.innerHTML="";
-const group={};
+/* =======================
+   分析报告：7天/30天（部位次数柱状图）+ 训练天数
+   ======================= */
 
-records.forEach(r=>{
-if(!group[r.muscle])group[r.muscle]={};
-group[r.muscle][r.exercise]=Math.max(group[r.muscle][r.exercise]||0,r.weight);
-});
+function renderAnalysis() {
+  const now = new Date();
+  const last7 = new Date(now); last7.setDate(now.getDate() - 6);
+  const last30 = new Date(now); last30.setDate(now.getDate() - 29);
 
-Object.keys(group).forEach(m=>{
-div.innerHTML+=`<h3>${m}</h3>`;
-Object.entries(group[m])
-.sort((a,b)=>b[1]-a[1])
-.forEach(([ex,max])=>{
-div.innerHTML+=`<div class="record">${ex} · 最大 ${max}kg</div>`;
-});
-});
+  const days7 = new Set();
+  const days30 = new Set();
+  const m7 = {};
+  const m30 = {};
+
+  records.forEach(r => {
+    const d = safeDate(r.date);
+    if (d >= last7) {
+      days7.add(r.date);
+      m7[r.muscle] = (m7[r.muscle] || 0) + 1;
+    }
+    if (d >= last30) {
+      days30.add(r.date);
+      m30[r.muscle] = (m30[r.muscle] || 0) + 1;
+    }
+  });
+
+  const d7El = document.getElementById("days7");
+  const d30El = document.getElementById("days30");
+  if (d7El) d7El.textContent = days7.size;
+  if (d30El) d30El.textContent = days30.size;
+
+  renderBar("bar7", m7, () => bar7Chart, c => bar7Chart = c);
+  renderBar("bar30", m30, () => bar30Chart, c => bar30Chart = c);
+
+  renderTrendSelect();
 }
 
-function renderAll(){
-renderExerciseList();
-renderToday();
-renderHistory();
-renderAnalysis();
-renderMax();
+function renderBar(canvasId, map, getOld, setNew) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+
+  const old = getOld();
+  if (old) old.destroy();
+
+  const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(x => x[0]);
+  const values = sorted.map(x => x[1]);
+
+  const chart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "部位次数",
+        data: values,
+        backgroundColor: "#2E7CF6",
+        borderRadius: 8
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
+
+  setNew(chart);
+}
+
+/* =======================
+   重量趋势：最近5次（柱状图）
+   ======================= */
+
+function renderTrendSelect() {
+  const sel = document.getElementById("trendSelect");
+  if (!sel) return;
+
+  const prev = sel.value;
+  const exs = getUniqueExercises();
+
+  sel.innerHTML = "";
+  exs.forEach(ex => {
+    const opt = document.createElement("option");
+    opt.value = ex;
+    opt.textContent = ex;
+    sel.appendChild(opt);
+  });
+
+  if (exs.includes(prev)) sel.value = prev;
+  renderTrend();
+}
+
+function renderTrend() {
+  const sel = document.getElementById("trendSelect");
+  const canvas = document.getElementById("trendChart");
+  if (!sel || !canvas) return;
+
+  const ex = sel.value;
+  const data = records
+    .filter(r => r.exercise === ex)
+    .sort((a, b) => (a.date > b.date ? 1 : -1))
+    .slice(-5);
+
+  if (trendChart) trendChart.destroy();
+  if (data.length === 0) return;
+
+  const labels = data.map(d => d.date.slice(5)); // MM-DD
+  const weights = data.map(d => d.weight);
+
+  trendChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: `${ex} 最近5次重量(kg)`,
+        data: weights,
+        backgroundColor: "#2E7CF6",
+        borderRadius: 8
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: { callback: (v) => `${v}kg` }
+        }
+      }
+    }
+  });
+}
+
+/* =======================
+   极限重量：按部位 -> 动作最大重量排序
+   ======================= */
+
+function renderMax() {
+  const div = document.getElementById("maxList");
+  if (!div) return;
+  div.innerHTML = "";
+
+  if (records.length === 0) {
+    div.innerHTML = `<div class="small">暂无记录</div>`;
+    return;
+  }
+
+  const group = {};
+  records.forEach(r => {
+    if (!group[r.muscle]) group[r.muscle] = {};
+    group[r.muscle][r.exercise] = Math.max(group[r.muscle][r.exercise] || 0, r.weight);
+  });
+
+  Object.keys(group).forEach(m => {
+    div.innerHTML += `<div class="small" style="margin-top:10px;">${m}</div>`;
+    Object.entries(group[m])
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([ex, maxW]) => {
+        div.innerHTML += `<div class="record">${ex} · 最大 ${maxW}kg</div>`;
+      });
+  });
+}
+
+/* =======================
+   总渲染
+   ======================= */
+
+function renderAll() {
+  renderExerciseHistory();
+  renderToday();
+  renderHistory();
+  renderAnalysis();
+  renderMax();
 }
 
 renderAll();
