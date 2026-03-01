@@ -79,6 +79,13 @@ button.primary{
   padding:10px 0;
   border-bottom:1px solid #f0f2f5;
 }
+/* 保持你现有全部样式不变 */
 
+.delete-btn{
+  color:#ff4d4f;
+  font-size:13px;
+  cursor:pointer;
+  float:right;
+}
 .metric{margin:6px 0;}
 canvas{margin-top:10px;}

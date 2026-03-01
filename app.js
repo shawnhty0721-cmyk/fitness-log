@@ -21,8 +21,6 @@ function switchTab(id,btn){
  renderAll();
 }
 
-/* 分部位下拉 */
-
 function updateExerciseOptions(){
  const muscle=document.getElementById("muscle").value;
  const select=document.getElementById("exerciseSelect");
@@ -56,10 +54,7 @@ function updateExerciseOptions(){
  }
 }
 
-/* 添加 */
-
 function addRecord(){
-
  const muscle=document.getElementById("muscle").value;
  const select=document.getElementById("exerciseSelect");
  const input=document.getElementById("exerciseInput");
@@ -96,28 +91,41 @@ function addRecord(){
  renderAll();
 }
 
-/* 今日 */
+/* 删除 */
+function deleteRecord(id){
+ if(!confirm("确定删除这条记录？")) return;
+ records=records.filter(r=>r.id!==id);
+ save();
+ renderAll();
+}
 
+/* 今日 */
 function renderToday(){
  const div=document.getElementById("todayList");
  const list=records.filter(r=>r.date===todayStr());
+
  div.innerHTML=list.map(r=>
-  `<div class="record">${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}</div>`
+  `<div class="record">
+    ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
+    <span class="delete-btn" onclick="deleteRecord(${r.id})">删除</span>
+  </div>`
  ).join("")||"<div>今天还没有记录</div>";
 }
 
 /* 历史 */
-
 function renderHistory(){
  const div=document.getElementById("historyList");
  const data=records.slice().reverse();
+
  div.innerHTML=data.map(r=>
-  `<div class="record">${r.date} - ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}</div>`
+  `<div class="record">
+    ${r.date} - ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
+    <span class="delete-btn" onclick="deleteRecord(${r.id})">删除</span>
+  </div>`
  ).join("")||"<div>暂无记录</div>";
 }
 
 /* 分析 */
-
 function renderAnalysis(){
  const now=new Date();
  const last7=new Date(now);last7.setDate(now.getDate()-6);
@@ -135,13 +143,13 @@ function renderAnalysis(){
  document.getElementById("days7").textContent=days7.size;
  document.getElementById("days30").textContent=days30.size;
 
- drawBar("bar7",m7);
- drawBar("bar30",m30);
+ drawBar("bar7",m7,true);
+ drawBar("bar30",m30,false);
 
  renderTrendSelect();
 }
 
-function drawBar(id,map){
+function drawBar(id,map,is7){
  const ctx=document.getElementById(id);
  const labels=Object.keys(map);
  const values=Object.values(map);
@@ -152,12 +160,11 @@ function drawBar(id,map){
   options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
  });
 
- if(id==="bar7"){if(bar7Chart)bar7Chart.destroy();bar7Chart=chart;}
+ if(is7){if(bar7Chart)bar7Chart.destroy();bar7Chart=chart;}
  else{if(bar30Chart)bar30Chart.destroy();bar30Chart=chart;}
 }
 
 /* 趋势 */
-
 function renderTrendSelect(){
  const sel=document.getElementById("trendSelect");
  const exercises=[...new Set(records.map(r=>r.exercise))];
@@ -183,7 +190,6 @@ function renderTrend(){
 }
 
 /* 极限 */
-
 function renderMax(){
  const div=document.getElementById("maxList");
  const group={};
