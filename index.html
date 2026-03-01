@@ -29,29 +29,31 @@
     <h2>今日训练</h2>
 
     <label class="label">训练部位</label>
-    <select id="muscle" class="control">
-      <option>胸</option><option>背</option><option>腿</option>
-      <option>肩</option><option>手臂</option><option>核心</option><option>其他</option>
-    </select>
-
-    <!-- 新增：动作历史下拉（安卓最稳） -->
-    <label class="label">从历史动作选择（可选）</label>
-    <select id="exerciseSelect" class="control" onchange="pickExerciseFromSelect()">
-      <option value="">（选择后会自动填入下面的动作名称）</option>
+    <select id="muscle" class="control" onchange="updateExerciseOptions()">
+      <option>胸</option>
+      <option>背</option>
+      <option>腿</option>
+      <option>肩</option>
+      <option>手臂</option>
+      <option>核心</option>
+      <option>其他</option>
     </select>
 
     <label class="label">动作名称</label>
-    <input id="exercise" class="control" list="exerciseList" placeholder="例如：卧推">
-    <datalist id="exerciseList"></datalist>
+    <select id="exerciseSelect" class="control" onchange="handleExerciseSelect()">
+      <option value="">请选择动作</option>
+    </select>
+
+    <input id="exerciseInput" class="control hidden" placeholder="输入新动作">
 
     <label class="label">重量 (kg)</label>
-    <input id="weight" class="control" type="number" inputmode="decimal" placeholder="60">
+    <input id="weight" class="control" type="number">
 
     <label class="label">次数</label>
-    <input id="reps" class="control" type="number" inputmode="numeric" placeholder="8">
+    <input id="reps" class="control" type="number">
 
     <label class="label">组数</label>
-    <input id="sets" class="control" type="number" inputmode="numeric" placeholder="3">
+    <input id="sets" class="control" type="number">
 
     <button class="primary" onclick="addRecord()">保存记录</button>
   </div>
