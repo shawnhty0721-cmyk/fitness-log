@@ -61,9 +61,7 @@ body{
   font-size:15px;
 }
 
-select.control{
-  appearance:none;
-}
+.hidden{display:none;}
 
 button.primary{
   width:100%;
@@ -83,6 +81,4 @@ button.primary{
 }
 
 .metric{margin:6px 0;}
-
-.hidden{display:none;}
 canvas{margin-top:10px;}
