@@ -21,6 +21,7 @@ function switchTab(id,btn){
  renderAll();
 }
 
+/* 分部位下拉 */
 function updateExerciseOptions(){
  const muscle=document.getElementById("muscle").value;
  const select=document.getElementById("exerciseSelect");
@@ -54,6 +55,7 @@ function updateExerciseOptions(){
  }
 }
 
+/* 添加记录 */
 function addRecord(){
  const muscle=document.getElementById("muscle").value;
  const select=document.getElementById("exerciseSelect");
@@ -91,7 +93,7 @@ function addRecord(){
  renderAll();
 }
 
-/* 删除 */
+/* 删除记录 */
 function deleteRecord(id){
  if(!confirm("确定删除这条记录？")) return;
  records=records.filter(r=>r.id!==id);
@@ -164,7 +166,7 @@ function drawBar(id,map,is7){
  else{if(bar30Chart)bar30Chart.destroy();bar30Chart=chart;}
 }
 
-/* 趋势 */
+/* 重量趋势 */
 function renderTrendSelect(){
  const sel=document.getElementById("trendSelect");
  const exercises=[...new Set(records.map(r=>r.exercise))];
@@ -189,7 +191,7 @@ function renderTrend(){
  });
 }
 
-/* 极限 */
+/* 极限重量 */
 function renderMax(){
  const div=document.getElementById("maxList");
  const group={};

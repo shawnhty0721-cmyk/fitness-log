@@ -11,14 +11,24 @@ body{
   padding:24px 18px 80px;
 }
 
-.top h1{margin:0;font-size:28px;font-weight:700;}
-.subtitle{color:#8a8f98;font-size:13px;margin-top:6px;}
+.top h1{
+  margin:0;
+  font-size:28px;
+  font-weight:700;
+}
+
+.subtitle{
+  color:#8a8f98;
+  font-size:13px;
+  margin-top:6px;
+}
 
 .tabs{
   display:flex;
   gap:8px;
   margin:18px 0;
 }
+
 .tabs button{
   flex:1;
   padding:10px;
@@ -27,7 +37,9 @@ body{
   border-radius:16px;
   font-size:13px;
   font-weight:600;
+  cursor:pointer;
 }
+
 .tabs button.active{
   background:#2E7CF6;
   color:#fff;
@@ -61,7 +73,9 @@ body{
   font-size:15px;
 }
 
-.hidden{display:none;}
+.hidden{
+  display:none;
+}
 
 button.primary{
   width:100%;
@@ -73,19 +87,32 @@ button.primary{
   color:#fff;
   font-size:15px;
   font-weight:700;
+  cursor:pointer;
 }
 
 .record{
   padding:10px 0;
   border-bottom:1px solid #f0f2f5;
+  position:relative;
 }
-/* 保持你现有全部样式不变 */
+
+.record:last-child{
+  border-bottom:none;
+}
 
 .delete-btn{
+  position:absolute;
+  right:0;
+  top:10px;
   color:#ff4d4f;
   font-size:13px;
   cursor:pointer;
-  float:right;
 }
-.metric{margin:6px 0;}
-canvas{margin-top:10px;}
+
+.metric{
+  margin:6px 0;
+}
+
+canvas{
+  margin-top:10px;
+}

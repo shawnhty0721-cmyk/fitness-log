@@ -23,6 +23,7 @@
   <button onclick="switchTab('max',this)">极限重量</button>
 </nav>
 
+<!-- 今日训练 -->
 <section id="today" class="tab">
   <div class="card">
     <h2>今日训练</h2>
@@ -60,6 +61,7 @@
   </div>
 </section>
 
+<!-- 历史 -->
 <section id="history" class="tab hidden">
   <div class="card">
     <h2>历史记录</h2>
@@ -67,7 +69,9 @@
   </div>
 </section>
 
+<!-- 分析 -->
 <section id="analysis" class="tab hidden">
+
   <div class="card">
     <h2>最近7天</h2>
     <p class="metric">训练天数：<b id="days7">0</b></p>
@@ -85,8 +89,10 @@
     <select id="trendSelect" class="control" onchange="renderTrend()"></select>
     <canvas id="trendChart"></canvas>
   </div>
+
 </section>
 
+<!-- 极限 -->
 <section id="max" class="tab hidden">
   <div class="card">
     <h2>极限重量</h2>
