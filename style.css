@@ -4,28 +4,35 @@ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto;
 background:#f4f6f8;
 color:#111;
 }
+
 .container{
 max-width:680px;
 margin:auto;
 padding:24px 18px 80px;
 }
-h1{margin:0;font-size:28px;font-weight:700;}
+
+.top h1{margin:0;font-size:28px;font-weight:700;}
 .subtitle{color:#8a8f98;font-size:13px;margin-top:6px;}
 
 .tabs{
 display:flex;
-overflow:auto;
+gap:8px;
 margin:18px 0;
+overflow:auto;
 }
+
 .tabs button{
 flex:1;
+min-width:100px;
 padding:10px;
 border:none;
 background:#e9edf2;
-margin-right:6px;
 border-radius:16px;
 font-size:13px;
+font-weight:600;
+cursor:pointer;
 }
+
 .tabs button.active{
 background:#2E7CF6;
 color:white;
@@ -39,27 +46,53 @@ margin-top:16px;
 border:1px solid #edf0f3;
 }
 
+.card h2{
+margin:0 0 12px 0;
+font-size:16px;
+font-weight:700;
+}
+
+.label{
+display:block;
+margin-top:14px;
+font-size:13px;
+font-weight:600;
+color:#555;
+}
+
 input,select{
 width:100%;
-padding:12px;
-margin-top:10px;
+height:44px;
+padding:12px 14px;
+margin-top:6px;
 border-radius:14px;
 border:1px solid #e3e7ec;
 background:#f9fafb;
+font-size:15px;
+box-sizing:border-box;
+}
+
+input:focus,select:focus{
+outline:none;
+border-color:#2E7CF6;
+background:#fff;
 }
 
 button.primary{
-margin-top:14px;
+margin-top:18px;
 padding:12px;
-border-radius:16px;
+border-radius:18px;
 border:none;
 background:#2E7CF6;
 color:white;
 width:100%;
+font-size:15px;
+font-weight:700;
+cursor:pointer;
 }
 
 .record{
-padding:8px 0;
+padding:10px 0;
 border-bottom:1px solid #f0f2f5;
 font-size:14px;
 }

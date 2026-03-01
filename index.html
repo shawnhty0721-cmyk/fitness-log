@@ -11,72 +11,93 @@
 
 <div class="container">
 
-<h1>训练日志</h1>
-<div class="subtitle">Keep × iOS 极简版</div>
+<header class="top">
+  <h1>训练日志</h1>
+  <div class="subtitle">Keep × iOS 极简版</div>
+</header>
 
-<!-- 底部导航 -->
 <nav class="tabs">
-<button class="active" onclick="switchTab('today',this)">今日训练</button>
-<button onclick="switchTab('history',this)">历史记录</button>
-<button onclick="switchTab('analysis',this)">分析报告</button>
-<button onclick="switchTab('max',this)">极限重量</button>
+  <button class="active" onclick="switchTab('today',this)">今日训练</button>
+  <button onclick="switchTab('history',this)">历史记录</button>
+  <button onclick="switchTab('analysis',this)">分析报告</button>
+  <button onclick="switchTab('max',this)">极限重量</button>
 </nav>
 
 <!-- 今日训练 -->
 <section id="today" class="tab">
-<div class="card">
-<input id="exercise" placeholder="动作名称">
-<select id="muscle">
-<option>胸</option><option>背</option><option>腿</option>
-<option>肩</option><option>手臂</option>
-<option>核心</option><option>其他</option>
-</select>
-<input id="weight" type="number" placeholder="重量 kg">
-<input id="reps" type="number" placeholder="次数">
-<input id="sets" type="number" placeholder="组数">
-<button class="primary" onclick="addRecord()">保存记录</button>
-</div>
-<div class="card">
-<h2>今日预览</h2>
-<div id="todayList"></div>
-</div>
+  <div class="card">
+    <h2>今日训练</h2>
+
+    <label class="label">训练部位</label>
+    <select id="muscle">
+      <option>胸</option>
+      <option>背</option>
+      <option>腿</option>
+      <option>肩</option>
+      <option>手臂</option>
+      <option>核心</option>
+      <option>其他</option>
+    </select>
+
+    <label class="label">动作名称</label>
+    <input id="exercise" list="exerciseList" placeholder="例如：卧推">
+    <datalist id="exerciseList"></datalist>
+
+    <label class="label">重量 (kg)</label>
+    <input id="weight" type="number">
+
+    <label class="label">次数</label>
+    <input id="reps" type="number">
+
+    <label class="label">组数</label>
+    <input id="sets" type="number">
+
+    <button class="primary" onclick="addRecord()">保存记录</button>
+  </div>
+
+  <div class="card">
+    <h2>今日预览</h2>
+    <div id="todayList"></div>
+  </div>
 </section>
 
 <!-- 历史记录 -->
 <section id="history" class="tab hidden">
-<div class="card">
-<h2>历史记录</h2>
-<div id="historyList"></div>
-</div>
+  <div class="card">
+    <h2>历史记录</h2>
+    <div id="historyList"></div>
+  </div>
 </section>
 
 <!-- 分析报告 -->
 <section id="analysis" class="tab hidden">
-<div class="card">
-<h2>最近7天</h2>
-<p>训练天数：<b id="days7"></b></p>
-<canvas id="bar7"></canvas>
-</div>
 
-<div class="card">
-<h2>最近30天</h2>
-<p>训练天数：<b id="days30"></b></p>
-<canvas id="bar30"></canvas>
-</div>
+  <div class="card">
+    <h2>最近7天</h2>
+    <p>训练天数：<b id="days7"></b></p>
+    <canvas id="bar7"></canvas>
+  </div>
 
-<div class="card">
-<h2>重量趋势（最近5次）</h2>
-<select id="trendSelect" onchange="renderTrend()"></select>
-<canvas id="trendChart"></canvas>
-</div>
+  <div class="card">
+    <h2>最近30天</h2>
+    <p>训练天数：<b id="days30"></b></p>
+    <canvas id="bar30"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>重量趋势（最近5次）</h2>
+    <select id="trendSelect" onchange="renderTrend()"></select>
+    <canvas id="trendChart"></canvas>
+  </div>
+
 </section>
 
 <!-- 极限重量 -->
 <section id="max" class="tab hidden">
-<div class="card">
-<h2>极限重量</h2>
-<div id="maxList"></div>
-</div>
+  <div class="card">
+    <h2>极限重量</h2>
+    <div id="maxList"></div>
+  </div>
 </section>
 
 </div>

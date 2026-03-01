@@ -3,14 +3,20 @@ let records=JSON.parse(localStorage.getItem(STORAGE))||[];
 
 let bar7Chart,bar30Chart,trendChart;
 
-function save(){localStorage.setItem(STORAGE,JSON.stringify(records));}
-function today(){return new Date().toISOString().slice(0,10);}
+function save(){
+localStorage.setItem(STORAGE,JSON.stringify(records));
+}
+
+function today(){
+return new Date().toISOString().slice(0,10);
+}
 
 function switchTab(id,btn){
 document.querySelectorAll(".tab").forEach(t=>t.classList.add("hidden"));
 document.getElementById(id).classList.remove("hidden");
 document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
 btn.classList.add("active");
+renderAll();
 }
 
 function addRecord(){
@@ -27,6 +33,7 @@ id:Date.now(),
 date:today(),
 exercise,muscle,weight,reps,sets
 });
+
 save();
 renderAll();
 
@@ -34,6 +41,17 @@ document.getElementById("exercise").value="";
 document.getElementById("weight").value="";
 document.getElementById("reps").value="";
 document.getElementById("sets").value="";
+}
+
+function renderExerciseList(){
+const list=document.getElementById("exerciseList");
+const unique=[...new Set(records.map(r=>r.exercise))];
+list.innerHTML="";
+unique.forEach(ex=>{
+const opt=document.createElement("option");
+opt.value=ex;
+list.appendChild(opt);
+});
 }
 
 function renderToday(){
@@ -52,7 +70,7 @@ const div=document.getElementById("historyList");
 div.innerHTML="";
 records.slice().reverse().forEach(r=>{
 div.innerHTML+=`<div class="record">
-${r.date} - ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
+${r.date} - ${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}
 </div>`;
 });
 }
@@ -95,7 +113,10 @@ backgroundColor:"#2E7CF6",
 borderRadius:6
 }]
 },
-options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+options:{
+plugins:{legend:{display:false}},
+scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}
+}
 });
 
 if(id==="bar7")bar7Chart=chart;
@@ -128,7 +149,8 @@ labels:data.map(d=>d.date),
 datasets:[{
 label:"重量 kg",
 data:data.map(d=>d.weight),
-backgroundColor:"#2E7CF6"
+backgroundColor:"#2E7CF6",
+borderRadius:6
 }]
 },
 options:{scales:{y:{beginAtZero:false}}}
@@ -156,6 +178,7 @@ div.innerHTML+=`<div class="record">${ex} · 最大 ${max}kg</div>`;
 }
 
 function renderAll(){
+renderExerciseList();
 renderToday();
 renderHistory();
 renderAnalysis();
