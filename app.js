@@ -1,36 +1,180 @@
 const STORAGE = "fitness-data";
-let records = JSON.parse(localStorage.getItem(STORAGE)) || [];
+const BODY_PARTS = ["胸", "背", "腿", "肩", "手臂", "核心", "其他"];
 
-// 图表实例
-let bar7Chart = null;
-let bar30Chart = null;
+let records = loadRecords();
+let selectedHistoryDate = getLatestTrainingDate();
+let analysisRange = 7;
+
+let analysisChart = null;
 let trendChart = null;
 
-// 历史日期选择（默认最近一次训练日期）
-let selectedHistoryDate = "";
-
-// 注册 Chart.js datalabels（显示柱状图数字）
 if (window.Chart && window.ChartDataLabels) {
   Chart.register(ChartDataLabels);
 }
 
+if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(error => {
+      console.warn("Service worker 注册失败", error);
+    });
+  });
+}
+
+function loadRecords() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE) || "[]");
+    return normalizeImportedData(raw);
+  } catch (error) {
+    console.warn("读取本地数据失败", error);
+    return [];
+  }
+}
+
 function save() {
+  records = normalizeImportedData(records);
   localStorage.setItem(STORAGE, JSON.stringify(records));
 }
 
+function pad2(value) {
+  return String(value).padStart(2, "0");
+}
+
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 function safeDate(dateStr) {
-  // dateStr: YYYY-MM-DD
-  return new Date(dateStr + "T00:00:00");
+  return new Date(`${dateStr}T00:00:00`);
+}
+
+function uid() {
+  return Date.now() + Math.floor(Math.random() * 1000);
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function isDateString(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function normalizeItem(item, fallbackDate) {
+  if (!item || typeof item !== "object") return null;
+
+  const date = isDateString(item.date) ? item.date : fallbackDate;
+  const exercise = String(item.exercise || item.name || "").trim();
+  const muscle = String(item.muscle || item.bodyPart || item.part || "其他").trim() || "其他";
+  const weight = Number(item.weight);
+  const reps = Number(item.reps);
+  const sets = Number(item.sets || 1);
+
+  if (!isDateString(date) || !exercise || !Number.isFinite(weight) || !Number.isFinite(reps) || !Number.isFinite(sets)) {
+    return null;
+  }
+
+  return {
+    id: Number(item.id) || uid(),
+    date,
+    muscle,
+    bodyPart: muscle,
+    exercise,
+    weight,
+    reps,
+    sets,
+    createdAt: item.createdAt || `${date}T00:00:00`
+  };
+}
+
+function normalizeImportedData(data) {
+  const result = [];
+
+  function addRecord(item, fallbackDate) {
+    const normalized = normalizeItem(item, fallbackDate);
+    if (normalized) result.push(normalized);
+  }
+
+  if (Array.isArray(data)) {
+    data.forEach(entry => {
+      if (entry && Array.isArray(entry.items)) {
+        entry.items.forEach(item => addRecord(item, entry.date));
+      } else {
+        addRecord(entry);
+      }
+    });
+  } else if (data && typeof data === "object") {
+    if (Array.isArray(data.records)) {
+      data.records.forEach(item => addRecord(item));
+    }
+    if (Array.isArray(data.workouts)) {
+      data.workouts.forEach(day => {
+        if (day && Array.isArray(day.items)) {
+          day.items.forEach(item => addRecord(item, day.date));
+        }
+      });
+    }
+    if (isDateString(data.date) && Array.isArray(data.items)) {
+      data.items.forEach(item => addRecord(item, data.date));
+    }
+  }
+
+  const seen = new Set();
+  return result
+    .filter(r => r.weight > 0 && r.reps > 0 && r.sets > 0)
+    .sort((a, b) => `${a.date}-${a.id}`.localeCompare(`${b.date}-${b.id}`))
+    .map(r => {
+      while (seen.has(r.id)) r.id = uid();
+      seen.add(r.id);
+      return r;
+    });
+}
+
+function buildWorkoutsExport() {
+  const byDate = {};
+  records.forEach(r => {
+    if (!byDate[r.date]) byDate[r.date] = [];
+    byDate[r.date].push({
+      id: r.id,
+      bodyPart: r.bodyPart || r.muscle || "其他",
+      muscle: r.muscle || r.bodyPart || "其他",
+      exercise: r.exercise,
+      weight: r.weight,
+      reps: r.reps,
+      sets: r.sets,
+      estimated1RM: Number(estimate1RM(r).toFixed(1))
+    });
+  });
+
+  return Object.keys(byDate)
+    .sort()
+    .map(date => ({ date, items: byDate[date] }));
 }
 
 function getLatestTrainingDate() {
   if (!records.length) return "";
-  // YYYY-MM-DD 字符串可直接比较
   return records.reduce((max, r) => (r.date > max ? r.date : max), records[0].date);
+}
+
+function estimate1RM(record) {
+  return Number(record.weight) * (1 + Number(record.reps) / 30);
+}
+
+function getChartSuggestedMax(values) {
+  const max = Math.max(0, ...values.map(Number));
+  if (max <= 0) return 1;
+  return Math.ceil(max * 1.25);
 }
 
 function switchTab(id, btn) {
@@ -41,29 +185,25 @@ function switchTab(id, btn) {
   renderAll();
 }
 
-/* ========== 今日训练：分部位动作下拉 ========== */
-
 function updateExerciseOptions() {
   const muscleEl = document.getElementById("muscle");
+  const muscleInput = document.getElementById("muscleInput");
   const select = document.getElementById("exerciseSelect");
   const input = document.getElementById("exerciseInput");
   if (!muscleEl || !select || !input) return;
 
-  const muscle = muscleEl.value;
+  const isCustomMuscle = muscleEl.value === "__custom__";
+  if (muscleInput) muscleInput.classList.toggle("hidden", !isCustomMuscle);
 
-  const exercises = [...new Set(
-    records
-      .filter(r => r.muscle === muscle)
-      .map(r => r.exercise)
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, "zh"));
+  const muscle = getSelectedMuscle();
+  const previous = select.value;
+  const exercises = getExercisesByMuscle(muscle);
 
   select.innerHTML = "";
 
-  if (exercises.length === 0) {
+  if (!exercises.length) {
     select.classList.add("hidden");
     input.classList.remove("hidden");
-    input.value = "";
     return;
   }
 
@@ -82,7 +222,8 @@ function updateExerciseOptions() {
   optNew.textContent = "+ 新建动作";
   select.appendChild(optNew);
 
-  // 绑定一次即可（避免重复覆盖）
+  if (exercises.includes(previous)) select.value = previous;
+
   select.onchange = () => {
     if (select.value === "__new__") {
       select.classList.add("hidden");
@@ -93,18 +234,38 @@ function updateExerciseOptions() {
   };
 }
 
-/* ========== 添加记录 ========== */
+function getSelectedMuscle() {
+  const muscleEl = document.getElementById("muscle");
+  const muscleInput = document.getElementById("muscleInput");
+  if (muscleEl?.value === "__custom__") {
+    return muscleInput?.value?.trim() || "";
+  }
+  return muscleEl?.value || "其他";
+}
+
+function getExercisesByMuscle(muscle) {
+  if (!muscle) return [];
+  return [...new Set(
+    records
+      .filter(r => (r.muscle || r.bodyPart || "其他") === muscle)
+      .map(r => r.exercise)
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "zh"));
+}
+
+function getUniqueExercisesAll() {
+  return [...new Set(records.map(r => r.exercise).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "zh"));
+}
 
 function addRecord() {
-  const muscle = document.getElementById("muscle")?.value || "其他";
+  const muscle = getSelectedMuscle();
   const select = document.getElementById("exerciseSelect");
   const input = document.getElementById("exerciseInput");
 
   let exercise = "";
-
   if (select && !select.classList.contains("hidden")) {
-    exercise = select.value;
-    if (exercise === "__new__") exercise = input?.value?.trim() || "";
+    exercise = select.value === "__new__" ? input?.value?.trim() || "" : select.value;
   } else {
     exercise = input?.value?.trim() || "";
   }
@@ -113,98 +274,108 @@ function addRecord() {
   const reps = Number(document.getElementById("reps")?.value);
   const sets = Number(document.getElementById("sets")?.value);
 
-  if (!exercise || !weight || !reps || !sets) {
-    alert("请填写完整");
+  if (!muscle || !exercise || weight <= 0 || reps <= 0 || sets <= 0) {
+    alert("请填写完整，并确保训练部位、重量、次数、组数都有效");
     return;
   }
 
+  const date = todayStr();
   records.push({
-    id: Date.now(),
-    date: todayStr(),
-    exercise,
+    id: uid(),
+    date,
     muscle,
+    bodyPart: muscle,
+    exercise,
     weight,
     reps,
-    sets
+    sets,
+    createdAt: new Date().toISOString()
   });
 
+  selectedHistoryDate = date;
   save();
 
-  // 清空输入（不改变 UI 风格）
-  const weightEl = document.getElementById("weight");
-  const repsEl = document.getElementById("reps");
-  const setsEl = document.getElementById("sets");
-  if (weightEl) weightEl.value = "";
-  if (repsEl) repsEl.value = "";
-  if (setsEl) setsEl.value = "";
-
-  // 若是新建动作输入模式，清空输入
+  ["weight", "reps", "sets"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   if (input && !input.classList.contains("hidden")) input.value = "";
 
   renderAll();
 }
 
-/* ========== 删除记录 ========== */
-
 function deleteRecord(id) {
   if (!confirm("确定删除这条记录？")) return;
   records = records.filter(r => r.id !== id);
+  afterDelete();
+}
+
+function deleteSelectedDay() {
+  ensureHistoryDefaultDate();
+  if (!selectedHistoryDate) return;
+  const count = records.filter(r => r.date === selectedHistoryDate).length;
+  if (!count) return;
+  if (!confirm(`确定删除 ${selectedHistoryDate} 的 ${count} 条记录？`)) return;
+  records = records.filter(r => r.date !== selectedHistoryDate);
+  afterDelete();
+}
+
+function afterDelete() {
   save();
-
-  // 如果删除导致历史默认日期失效，重置到最新
   const latest = getLatestTrainingDate();
-  if (selectedHistoryDate && latest && selectedHistoryDate > latest) {
-    selectedHistoryDate = latest;
-  }
   if (!records.length) selectedHistoryDate = "";
-
+  else if (!records.some(r => r.date === selectedHistoryDate)) selectedHistoryDate = latest;
   renderAll();
 }
 
-/* ========== 今日预览：按动作分组 ========== */
+function groupByExercise(list) {
+  const groups = {};
+  list.forEach(r => {
+    if (!groups[r.exercise]) groups[r.exercise] = [];
+    groups[r.exercise].push(r);
+  });
+  return groups;
+}
+
+function renderGroupedRecords(container, list, emptyText) {
+  if (!list.length) {
+    container.innerHTML = `<div class="list"><div class="item"><div class="item-main">${emptyText}</div></div></div>`;
+    return;
+  }
+
+  const groups = groupByExercise(list);
+  const names = Object.keys(groups).sort((a, b) => a.localeCompare(b, "zh"));
+  let html = `<div class="list">`;
+
+  names.forEach(ex => {
+    html += `<div class="group-title">${escapeHTML(ex)}</div>`;
+    groups[ex]
+      .sort((a, b) => a.id - b.id)
+      .forEach((r, index) => {
+        html += `
+          <div class="item">
+            <div class="item-head">
+              <div class="item-main">
+                第 ${index + 1} 组 · ${escapeHTML(r.muscle)} · ${formatNumber(r.weight)}kg × ${formatNumber(r.reps)} × ${formatNumber(r.sets)}
+                <div class="item-sub">推测 1RM ${formatNumber(estimate1RM(r))}kg</div>
+              </div>
+              <div class="delete-btn" onclick="deleteRecord(${r.id})">删除</div>
+            </div>
+          </div>
+        `;
+      });
+  });
+
+  html += `</div>`;
+  container.innerHTML = html;
+}
 
 function renderToday() {
   const div = document.getElementById("todayList");
   if (!div) return;
-
-  const t = todayStr();
-  const todays = records.filter(r => r.date === t);
-
-  if (!todays.length) {
-    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">今天还没有记录</div></div></div>`;
-    return;
-  }
-
-  // 按动作分组（你要求）
-  const groups = {};
-  todays.forEach(r => {
-    if (!groups[r.exercise]) groups[r.exercise] = [];
-    groups[r.exercise].push(r);
-  });
-
-  // 动作按字母/中文排序
-  const exerciseNames = Object.keys(groups).sort((a, b) => a.localeCompare(b, "zh"));
-
-  let html = `<div class="list">`;
-  exerciseNames.forEach(ex => {
-    html += `<div class="group-title">${ex}</div>`;
-    groups[ex].forEach(r => {
-      html += `
-        <div class="item">
-          <div class="item-head">
-            <div class="item-main">${r.muscle} · ${r.weight}kg × ${r.reps} × ${r.sets}</div>
-            <div class="delete-btn" onclick="deleteRecord(${r.id})">删除</div>
-          </div>
-        </div>
-      `;
-    });
-  });
-  html += `</div>`;
-
-  div.innerHTML = html;
+  const todays = records.filter(r => r.date === todayStr());
+  renderGroupedRecords(div, todays, "今天还没有记录");
 }
-
-/* ========== 历史记录：按日期查询（默认最近一次训练日期） ========== */
 
 function onHistoryDateChange() {
   const input = document.getElementById("historyDate");
@@ -214,168 +385,262 @@ function onHistoryDateChange() {
 
 function jumpToLatestHistoryDate() {
   selectedHistoryDate = getLatestTrainingDate();
-  const input = document.getElementById("historyDate");
-  if (input) input.value = selectedHistoryDate || "";
   renderHistory();
 }
 
 function ensureHistoryDefaultDate() {
-  if (selectedHistoryDate) return;
+  if (selectedHistoryDate && records.some(r => r.date === selectedHistoryDate)) return;
   selectedHistoryDate = getLatestTrainingDate();
-  const input = document.getElementById("historyDate");
-  if (input) input.value = selectedHistoryDate || "";
 }
 
 function renderHistory() {
   const div = document.getElementById("historyList");
+  const input = document.getElementById("historyDate");
   if (!div) return;
 
   ensureHistoryDefaultDate();
+  if (input) input.value = selectedHistoryDate || "";
+  renderHistoryDateList();
 
   if (!records.length) {
     div.innerHTML = `<div class="list"><div class="item"><div class="item-main">暂无记录</div></div></div>`;
     return;
   }
 
-  if (!selectedHistoryDate) {
-    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">请选择日期</div></div></div>`;
-    return;
-  }
-
   const dayRecords = records
     .filter(r => r.date === selectedHistoryDate)
-    .sort((a, b) => (a.exercise || "").localeCompare(b.exercise || "", "zh"));
+    .sort((a, b) => `${a.exercise}-${a.id}`.localeCompare(`${b.exercise}-${b.id}`, "zh"));
 
-  if (!dayRecords.length) {
-    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">该日期暂无记录</div></div></div>`;
+  renderGroupedRecords(div, dayRecords, "该日期暂无记录");
+}
+
+function getTrainingDates() {
+  return [...new Set(records.map(r => r.date).filter(Boolean))]
+    .sort((a, b) => b.localeCompare(a));
+}
+
+function selectHistoryDate(date) {
+  selectedHistoryDate = date;
+  renderHistory();
+}
+
+function renderHistoryDateList() {
+  const div = document.getElementById("historyDateList");
+  if (!div) return;
+
+  const dates = getTrainingDates();
+  if (!dates.length) {
+    div.innerHTML = "";
     return;
   }
 
-  let html = `<div class="list">`;
-  dayRecords.forEach(r => {
-    html += `
-      <div class="item">
-        <div class="item-head">
-          <div class="item-main">${r.muscle} · ${r.exercise} ${r.weight}kg × ${r.reps} × ${r.sets}</div>
-          <div class="delete-btn" onclick="deleteRecord(${r.id})">删除</div>
-        </div>
-      </div>
-    `;
+  let html = `
+    <div class="date-list">
+      <div class="date-list-title">有记录日期</div>
+      <div class="date-chips">
+  `;
+  dates.forEach(date => {
+    const active = date === selectedHistoryDate ? " active" : "";
+    html += `<button class="date-chip${active}" onclick="selectHistoryDate('${date}')">${date.slice(5)}</button>`;
   });
-  html += `</div>`;
-
+  html += `</div></div>`;
   div.innerHTML = html;
 }
 
-/* ========== 分析报告：部位次数按天算 + 柱状图显示数字 ========== */
+function setAnalysisRange(days) {
+  analysisRange = days === 30 ? 30 : 7;
+  renderAnalysis();
+}
 
-function getMuscleCountsByDay(windowStartDate, windowEndDate) {
-  // windowStartDate/windowEndDate: Date（含当天）
-  // 规则：同一天某部位出现过 => 该部位 +1（按天算）
-  const muscleToDates = {}; // muscle -> Set(dateStr)
+function getRangeDates(days) {
+  const end = safeDate(todayStr());
+  const start = new Date(end);
+  start.setDate(end.getDate() - days + 1);
+  return { start, end };
+}
 
-  records.forEach(r => {
+function getRecordsInRange(days) {
+  const { start, end } = getRangeDates(days);
+  return records.filter(r => {
     const d = safeDate(r.date);
-    if (d < windowStartDate || d > windowEndDate) return;
+    return d >= start && d <= end;
+  });
+}
 
-    const m = r.muscle || "其他";
+function getTrainingDaysCount(list) {
+  return new Set(list.map(r => r.date)).size;
+}
+
+function getMuscleCountsByDay(list) {
+  const muscleToDates = {};
+  list.forEach(r => {
+    const m = r.muscle || r.bodyPart || "其他";
     if (!muscleToDates[m]) muscleToDates[m] = new Set();
     muscleToDates[m].add(r.date);
   });
 
-  const muscles = Object.keys(muscleToDates);
   const counts = {};
-  muscles.forEach(m => counts[m] = muscleToDates[m].size);
+  Object.keys(muscleToDates).forEach(m => {
+    counts[m] = muscleToDates[m].size;
+  });
   return counts;
 }
 
-function getTrainingDaysCount(windowStartDate, windowEndDate) {
-  const days = new Set();
-  records.forEach(r => {
-    const d = safeDate(r.date);
-    if (d < windowStartDate || d > windowEndDate) return;
-    days.add(r.date);
-  });
-  return days.size;
-}
-
 function renderAnalysis() {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // 今天 00:00
-  const start7 = new Date(end); start7.setDate(end.getDate() - 6);
-  const start30 = new Date(end); start30.setDate(end.getDate() - 29);
+  const rangeRecords = getRecordsInRange(analysisRange);
+  const counts = getMuscleCountsByDay(rangeRecords);
 
-  const days7 = getTrainingDaysCount(start7, end);
-  const days30 = getTrainingDaysCount(start30, end);
+  document.getElementById("range7Btn")?.classList.toggle("active", analysisRange === 7);
+  document.getElementById("range30Btn")?.classList.toggle("active", analysisRange === 30);
 
-  const days7El = document.getElementById("days7");
-  const days30El = document.getElementById("days30");
-  if (days7El) days7El.textContent = String(days7);
-  if (days30El) days30El.textContent = String(days30);
+  const daysEl = document.getElementById("analysisDays");
+  if (daysEl) daysEl.textContent = String(getTrainingDaysCount(rangeRecords));
 
-  const m7 = getMuscleCountsByDay(start7, end);
-  const m30 = getMuscleCountsByDay(start30, end);
-
-  drawBarWithNumbers("bar7", m7, true);
-  drawBarWithNumbers("bar30", m30, false);
-
+  drawAnalysisBar(counts);
+  renderAnalysisTable(counts);
+  renderAnalysisPr(rangeRecords);
   renderTrendSelect();
 }
 
-function drawBarWithNumbers(canvasId, map, is7) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+function drawAnalysisBar(map) {
+  const canvas = document.getElementById("analysisBar");
+  if (!canvas || !window.Chart) return;
 
-  // 销毁旧图
-  if (is7 && bar7Chart) { bar7Chart.destroy(); bar7Chart = null; }
-  if (!is7 && bar30Chart) { bar30Chart.destroy(); bar30Chart = null; }
+  if (analysisChart) {
+    analysisChart.destroy();
+    analysisChart = null;
+  }
 
   const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
-  const labels = entries.map(x => x[0]);
-  const values = entries.map(x => x[1]);
+  const labels = entries.length ? entries.map(x => x[0]) : ["暂无"];
+  const values = entries.length ? entries.map(x => x[1]) : [0];
 
-  const chart = new Chart(canvas, {
+  analysisChart = new Chart(canvas, {
     type: "bar",
     data: {
       labels,
       datasets: [{
+        label: `近${analysisRange}天各部位训练次数`,
         data: values,
         backgroundColor: "#2E7CF6",
         borderRadius: 8
       }]
     },
     options: {
+      responsive: true,
+      layout: {
+        padding: { top: 28 }
+      },
       plugins: {
+        title: {
+          display: true,
+          text: `近${analysisRange}天各部位训练次数`
+        },
         legend: { display: false },
         tooltip: {
-          callbacks: { label: (ctx) => `${ctx.raw} 次` }
+          callbacks: { label: ctx => `${ctx.raw} 次` }
         },
         datalabels: {
           color: "#111",
           anchor: "end",
           align: "end",
           offset: 2,
-          formatter: (v) => (v === 0 ? "" : `${v}`)
+          formatter: v => (v ? `${v}` : "")
         }
       },
       scales: {
         y: {
           beginAtZero: true,
+          suggestedMax: getChartSuggestedMax(values),
           ticks: { stepSize: 1 }
         }
       }
     }
   });
-
-  if (is7) bar7Chart = chart;
-  else bar30Chart = chart;
 }
 
-/* ========== 重量趋势：最近5次（柱状图显示数字） ========== */
+function renderAnalysisTable(map) {
+  const div = document.getElementById("analysisTable");
+  if (!div) return;
 
-function getUniqueExercisesAll() {
-  return [...new Set(records.map(r => r.exercise).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b, "zh"));
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">近${analysisRange}天暂无训练记录</div></div></div>`;
+    return;
+  }
+
+  let html = `
+    <div class="table-lite">
+      <div class="table-row header"><div>部位</div><div>训练次数</div></div>
+  `;
+  entries.forEach(([muscle, count]) => {
+    html += `<div class="table-row"><div>${escapeHTML(muscle)}</div><div class="value">${count} 次</div></div>`;
+  });
+  html += `</div>`;
+  div.innerHTML = html;
+}
+
+function getPrList(list) {
+  const best = {};
+  list.forEach(r => {
+    const key = `${r.muscle}__${r.exercise}`;
+    const oneRm = estimate1RM(r);
+    if (!best[key]) {
+      best[key] = {
+        muscle: r.muscle,
+        exercise: r.exercise,
+        weight: r.weight,
+        reps: r.reps,
+        sets: r.sets,
+        date: r.date,
+        estimated1RM: oneRm,
+        maxWeight: r.weight,
+        maxWeightDate: r.date
+      };
+      return;
+    }
+
+    if (oneRm > best[key].estimated1RM) {
+      best[key].weight = r.weight;
+      best[key].reps = r.reps;
+      best[key].sets = r.sets;
+      best[key].date = r.date;
+      best[key].estimated1RM = oneRm;
+    }
+
+    if (r.weight > best[key].maxWeight) {
+      best[key].maxWeight = r.weight;
+      best[key].maxWeightDate = r.date;
+    }
+  });
+  return Object.values(best).sort((a, b) => b.estimated1RM - a.estimated1RM);
+}
+
+function renderAnalysisPr(list) {
+  const div = document.getElementById("analysisPrList");
+  if (!div) return;
+
+  const prs = getPrList(list).slice(0, 8);
+  if (!prs.length) {
+    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">近${analysisRange}天暂无 PR 数据</div></div></div>`;
+    return;
+  }
+
+  let html = `<div class="list">`;
+  prs.forEach(pr => {
+    html += `
+      <div class="item">
+        <div class="item-main">${escapeHTML(pr.exercise)} · ${formatNumber(pr.weight)}kg × ${formatNumber(pr.reps)}</div>
+        <div class="item-meta">
+          <span class="pill">${escapeHTML(pr.muscle)}</span>
+          <span class="pill">1RM ${formatNumber(pr.estimated1RM)}kg</span>
+          <span class="pill">${escapeHTML(pr.date)}</span>
+        </div>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  div.innerHTML = html;
 }
 
 function renderTrendSelect() {
@@ -384,8 +649,19 @@ function renderTrendSelect() {
 
   const prev = sel.value;
   const exs = getUniqueExercisesAll();
-
   sel.innerHTML = "";
+
+  if (!exs.length) {
+    const opt = document.createElement("option");
+    opt.textContent = "暂无动作";
+    sel.appendChild(opt);
+    if (trendChart) {
+      trendChart.destroy();
+      trendChart = null;
+    }
+    return;
+  }
+
   exs.forEach(ex => {
     const opt = document.createElement("option");
     opt.value = ex;
@@ -394,68 +670,68 @@ function renderTrendSelect() {
   });
 
   if (exs.includes(prev)) sel.value = prev;
-
-  // 没有任何动作时，清空图表
-  if (!exs.length) {
-    if (trendChart) { trendChart.destroy(); trendChart = null; }
-    return;
-  }
-
   renderTrend();
 }
 
 function renderTrend() {
   const sel = document.getElementById("trendSelect");
   const canvas = document.getElementById("trendChart");
-  if (!sel || !canvas) return;
+  if (!sel || !canvas || !window.Chart) return;
 
   const ex = sel.value;
   const data = records
     .filter(r => r.exercise === ex)
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .sort((a, b) => `${a.date}-${a.id}`.localeCompare(`${b.date}-${b.id}`))
     .slice(-5);
 
-  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  if (trendChart) {
+    trendChart.destroy();
+    trendChart = null;
+  }
   if (!data.length) return;
-
-  const labels = data.map(d => d.date.slice(5)); // MM-DD
-  const weights = data.map(d => d.weight);
 
   trendChart = new Chart(canvas, {
     type: "bar",
     data: {
-      labels,
+      labels: data.map(d => d.date.slice(5)),
       datasets: [{
-        data: weights,
+        label: `${ex} 最近5次重量`,
+        data: data.map(d => d.weight),
         backgroundColor: "#2E7CF6",
         borderRadius: 8
       }]
     },
     options: {
+      layout: {
+        padding: { top: 28 }
+      },
       plugins: {
+        title: {
+          display: true,
+          text: `${ex} 最近5次重量`
+        },
         legend: { display: false },
         tooltip: {
-          callbacks: { label: (ctx) => `${ctx.raw} kg` }
+          callbacks: { label: ctx => `${ctx.raw} kg` }
         },
         datalabels: {
           color: "#111",
           anchor: "end",
           align: "end",
           offset: 2,
-          formatter: (v) => (v === 0 ? "" : `${v}`)
+          formatter: v => (v ? `${v}` : "")
         }
       },
       scales: {
         y: {
           beginAtZero: false,
-          ticks: { callback: (v) => `${v}` }
+          suggestedMax: getChartSuggestedMax(data.map(d => d.weight)),
+          ticks: { callback: v => `${v}` }
         }
       }
     }
   });
 }
-
-/* ========== 极限重量：保持原逻辑 + 去网格线呈现 ========== */
 
 function renderMax() {
   const div = document.getElementById("maxList");
@@ -466,35 +742,79 @@ function renderMax() {
     return;
   }
 
-  const group = {}; // muscle -> exercise -> maxWeight
-  records.forEach(r => {
-    const m = r.muscle || "其他";
-    if (!group[m]) group[m] = {};
-    group[m][r.exercise] = Math.max(group[m][r.exercise] || 0, r.weight);
+  const prs = getPrList(records);
+  const byMuscle = {};
+  prs.forEach(pr => {
+    if (!byMuscle[pr.muscle]) byMuscle[pr.muscle] = [];
+    byMuscle[pr.muscle].push(pr);
   });
-
-  const muscles = Object.keys(group).sort((a, b) => a.localeCompare(b, "zh"));
 
   let html = `<div class="list">`;
-  muscles.forEach(m => {
-    html += `<div class="group-title">${m}</div>`;
-    const items = Object.entries(group[m]).sort((a, b) => b[1] - a[1]);
-    items.forEach(([ex, w]) => {
-      html += `
-        <div class="item">
-          <div class="item-head">
-            <div class="item-main">${ex} · 最大 ${w}kg</div>
+  Object.keys(byMuscle).sort((a, b) => a.localeCompare(b, "zh")).forEach(muscle => {
+    html += `<div class="group-title">${escapeHTML(muscle)}</div>`;
+    byMuscle[muscle]
+      .sort((a, b) => b.estimated1RM - a.estimated1RM)
+      .forEach(pr => {
+        html += `
+          <div class="item">
+            <div class="item-main">${escapeHTML(pr.exercise)} · 最大 ${formatNumber(pr.maxWeight)}kg</div>
+            <div class="item-sub">最佳 1RM ${formatNumber(pr.estimated1RM)}kg · ${escapeHTML(pr.date)} · ${formatNumber(pr.weight)}kg × ${formatNumber(pr.reps)}</div>
           </div>
-        </div>
-      `;
-    });
+        `;
+      });
   });
   html += `</div>`;
-
   div.innerHTML = html;
 }
 
-/* ========== 总渲染 ========== */
+function exportJSON() {
+  const payload = {
+    schemaVersion: 2,
+    exportedAt: new Date().toISOString(),
+    app: "fitness-log",
+    workouts: buildWorkoutsExport(),
+    records
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `fitness-log-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = normalizeImportedData(JSON.parse(reader.result));
+      if (!imported.length) {
+        alert("没有识别到可导入的训练记录");
+        return;
+      }
+
+      const merged = confirm("选择“确定”合并到当前数据；选择“取消”则用导入文件覆盖当前数据。");
+      records = merged ? normalizeImportedData([...records, ...imported]) : imported;
+      selectedHistoryDate = getLatestTrainingDate();
+      save();
+      renderAll();
+      alert(`已导入 ${imported.length} 条记录`);
+    } catch (error) {
+      console.error(error);
+      alert("JSON 文件格式不正确");
+    } finally {
+      event.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
 
 function renderAll() {
   updateExerciseOptions();
@@ -504,6 +824,5 @@ function renderAll() {
   renderMax();
 }
 
-// 初始化：历史默认日期设为最近一次训练日期
-selectedHistoryDate = getLatestTrainingDate() || "";
+save();
 renderAll();

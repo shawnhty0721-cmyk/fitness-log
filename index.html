@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>训练日志</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -38,7 +39,9 @@
       <option>手臂</option>
       <option>核心</option>
       <option>其他</option>
+      <option value="__custom__">自定义</option>
     </select>
+    <input id="muscleInput" class="control hidden" placeholder="输入训练部位或内容" oninput="updateExerciseOptions()">
 
     <label class="label">动作名称</label>
     <select id="exerciseSelect" class="control"></select>
@@ -70,7 +73,9 @@
     <div class="history-bar">
       <input id="historyDate" class="control" type="date" onchange="onHistoryDateChange()" />
       <button class="ghost" onclick="jumpToLatestHistoryDate()">最近一次</button>
+      <button class="danger-soft" onclick="deleteSelectedDay()">删除当天</button>
     </div>
+    <div id="historyDateList"></div>
 
     <div id="historyList"></div>
   </div>
@@ -80,19 +85,22 @@
 <section id="analysis" class="tab hidden">
 
   <div class="card">
-    <h2>各部位训练次数</h2>
-
-    <div class="subcard">
-      <h3>最近7天</h3>
-      <p class="metric">训练天数：<b id="days7">0</b></p>
-      <canvas id="bar7"></canvas>
+    <div class="card-title-row">
+      <h2>分析报告</h2>
+      <div class="segmented">
+        <button id="range7Btn" class="active" onclick="setAnalysisRange(7)">近7天</button>
+        <button id="range30Btn" onclick="setAnalysisRange(30)">近30天</button>
+      </div>
     </div>
 
-    <div class="subcard">
-      <h3>最近30天</h3>
-      <p class="metric">训练天数：<b id="days30">0</b></p>
-      <canvas id="bar30"></canvas>
-    </div>
+    <p class="metric">训练天数：<b id="analysisDays">0</b></p>
+    <canvas id="analysisBar"></canvas>
+    <div id="analysisTable"></div>
+  </div>
+
+  <div class="card">
+    <h2>动作 PR</h2>
+    <div id="analysisPrList"></div>
   </div>
 
   <div class="card">
@@ -108,6 +116,18 @@
   <div class="card">
     <h2>极限重量</h2>
     <div id="maxList"></div>
+  </div>
+
+  <div class="card">
+    <h2>数据管理</h2>
+    <div class="data-actions">
+      <button class="ghost" onclick="exportJSON()">导出 JSON</button>
+      <label class="ghost file-button">
+        导入 JSON
+        <input id="importFile" type="file" accept="application/json,.json" onchange="importJSON(event)">
+      </label>
+    </div>
+    <p class="hint">导出的数据兼容未来 AI 分析，也会继续兼容旧版单条记录格式。</p>
   </div>
 </section>
 

@@ -59,6 +59,17 @@ body{
   font-weight:700;
 }
 
+.card-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.card-title-row h2{
+  margin:0;
+}
+
 .subcard{
   margin-top:14px;
 }
@@ -117,6 +128,43 @@ button.ghost{
   white-space:nowrap;
 }
 
+button.danger-soft{
+  height:46px;
+  padding:0 14px;
+  border-radius:14px;
+  border:1px solid #ffd7d7;
+  background:#fff7f7;
+  color:#e5484d;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+
+.segmented{
+  display:flex;
+  padding:3px;
+  border-radius:14px;
+  background:#f0f2f5;
+  flex:0 0 auto;
+}
+
+.segmented button{
+  border:none;
+  border-radius:11px;
+  background:transparent;
+  padding:8px 12px;
+  font-size:13px;
+  font-weight:700;
+  color:#69707a;
+  cursor:pointer;
+}
+
+.segmented button.active{
+  background:#fff;
+  color:#2E7CF6;
+}
+
 /* 关键：去掉“网格线/分割线”，改用留白 */
 .list{
   margin-top:8px;
@@ -151,6 +199,25 @@ button.ghost{
   color:#8a8f98;
 }
 
+.item-meta{
+  margin-top:6px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 9px;
+  border-radius:999px;
+  background:#f4f6f8;
+  color:#555;
+  font-size:12px;
+  font-weight:600;
+}
+
 .group-title{
   margin-top:12px;
   font-size:13px;
@@ -174,6 +241,41 @@ button.ghost{
 
 canvas{
   margin-top:10px;
+  max-height:260px;
+}
+
+.date-list{
+  margin-top:12px;
+}
+
+.date-list-title{
+  color:#8a8f98;
+  font-size:12px;
+  font-weight:700;
+}
+
+.date-chips{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+
+.date-chip{
+  min-height:34px;
+  border:none;
+  border-radius:999px;
+  background:#f4f6f8;
+  color:#555;
+  padding:0 12px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.date-chip.active{
+  background:#e8f1ff;
+  color:#2E7CF6;
 }
 
 /* 历史日期栏 */
@@ -182,8 +284,78 @@ canvas{
   gap:8px;
   align-items:center;
   margin-top:8px;
+  flex-wrap:wrap;
 }
 
 .history-bar .control{
   margin-top:0;
+  flex:1 1 160px;
+}
+
+.table-lite{
+  margin-top:14px;
+}
+
+.table-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:8px 0;
+}
+
+.table-row.header{
+  color:#8a8f98;
+  font-size:12px;
+  font-weight:700;
+}
+
+.table-row .value{
+  color:#111;
+  font-weight:700;
+}
+
+.data-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.file-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  cursor:pointer;
+}
+
+.file-button input{
+  display:none;
+}
+
+.hint{
+  margin:10px 0 0;
+  color:#8a8f98;
+  font-size:12px;
+  line-height:1.5;
+}
+
+@media (max-width:520px){
+  .container{
+    padding:18px 14px 64px;
+  }
+
+  .tabs{
+    gap:6px;
+  }
+
+  .tabs button{
+    padding:10px 6px;
+    font-size:12px;
+  }
+
+  .card-title-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
 }

@@ -3,7 +3,7 @@
   "short_name": "健身",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#111111",
-  "theme_color": "#4CAF50",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2E7CF6",
   "icons": []
 }
