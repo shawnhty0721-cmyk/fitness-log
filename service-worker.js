@@ -1,9 +1,9 @@
-const CACHE_NAME = "fitness-log-v6";
+const CACHE_NAME = "fitness-log-v7";
 const LOCAL_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=6",
-  "./app.js?v=6",
+  "./style.css?v=7",
+  "./app.js?v=7",
   "./manifest.json"
 ];
 const REMOTE_ASSETS = [

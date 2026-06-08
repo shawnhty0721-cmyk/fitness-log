@@ -80,6 +80,7 @@ function normalizeItem(item, fallbackDate) {
   const exercise = String(item.exercise || item.name || "").trim();
   const muscle = String(item.muscle || item.bodyPart || item.part || "其他").trim() || "其他";
   const weight = Number(item.weight);
+  const unit = String(item.unit || "kg").trim() || "kg";
   const reps = Number(item.reps);
   const sets = Number(item.sets || 1);
 
@@ -94,6 +95,7 @@ function normalizeItem(item, fallbackDate) {
     bodyPart: muscle,
     exercise,
     weight,
+    unit,
     reps,
     sets,
     createdAt: item.createdAt || `${date}T00:00:00`,
@@ -154,9 +156,9 @@ function buildWorkoutsExport() {
       muscle: r.muscle || r.bodyPart || "其他",
       exercise: r.exercise,
       weight: r.weight,
+      unit: r.unit || "kg",
       reps: r.reps,
-      sets: r.sets,
-      estimated1RM: Number(estimate1RM(r).toFixed(1))
+      sets: r.sets
     });
   });
 
@@ -170,14 +172,14 @@ function getLatestTrainingDate() {
   return records.reduce((max, r) => (r.date > max ? r.date : max), records[0].date);
 }
 
-function estimate1RM(record) {
-  return Number(record.weight) * (1 + Number(record.reps) / 30);
-}
-
 function getChartSuggestedMax(values) {
   const max = Math.max(0, ...values.map(Number));
   if (max <= 0) return 1;
   return Math.ceil(max * 1.25);
+}
+
+function formatValue(record) {
+  return `${formatNumber(record.weight)}${escapeHTML(record.unit || "kg")}`;
 }
 
 function switchTab(id, btn) {
@@ -246,6 +248,22 @@ function getSelectedMuscle() {
   return muscleEl?.value || "其他";
 }
 
+function updateUnitInput() {
+  const unitSelect = document.getElementById("unitSelect");
+  const unitInput = document.getElementById("unitInput");
+  if (!unitSelect || !unitInput) return;
+  unitInput.classList.toggle("hidden", unitSelect.value !== "__custom__");
+}
+
+function getSelectedUnit() {
+  const unitSelect = document.getElementById("unitSelect");
+  const unitInput = document.getElementById("unitInput");
+  if (unitSelect?.value === "__custom__") {
+    return unitInput?.value?.trim() || "";
+  }
+  return unitSelect?.value || "kg";
+}
+
 function getExercisesByMuscle(muscle) {
   if (!muscle) return [];
   return [...new Set(
@@ -274,11 +292,12 @@ function addRecord() {
   }
 
   const weight = Number(document.getElementById("weight")?.value);
+  const unit = getSelectedUnit();
   const reps = Number(document.getElementById("reps")?.value);
   const sets = Number(document.getElementById("sets")?.value);
 
-  if (!muscle || !exercise || weight <= 0 || reps <= 0 || sets <= 0) {
-    alert("请填写完整，并确保训练部位、重量、次数、组数都有效");
+  if (!muscle || !exercise || !unit || weight <= 0 || reps <= 0 || sets <= 0) {
+    alert("请填写完整，并确保训练部位、动作、数值、单位、次数、组数都有效");
     return;
   }
 
@@ -290,6 +309,7 @@ function addRecord() {
     bodyPart: muscle,
     exercise,
     weight,
+    unit,
     reps,
     sets,
     createdAt: new Date().toISOString()
@@ -331,11 +351,12 @@ function updateRecord(id) {
   const muscle = document.getElementById(`edit-muscle-${id}`)?.value?.trim() || "";
   const exercise = document.getElementById(`edit-exercise-${id}`)?.value?.trim() || "";
   const weight = Number(document.getElementById(`edit-weight-${id}`)?.value);
+  const unit = document.getElementById(`edit-unit-${id}`)?.value?.trim() || "";
   const reps = Number(document.getElementById(`edit-reps-${id}`)?.value);
   const sets = Number(document.getElementById(`edit-sets-${id}`)?.value);
 
-  if (!muscle || !exercise || weight <= 0 || reps <= 0 || sets <= 0) {
-    alert("请填写完整，并确保训练部位、动作、重量、次数、组数都有效");
+  if (!muscle || !exercise || !unit || weight <= 0 || reps <= 0 || sets <= 0) {
+    alert("请填写完整，并确保训练部位、动作、数值、单位、次数、组数都有效");
     return;
   }
 
@@ -343,6 +364,7 @@ function updateRecord(id) {
   record.bodyPart = muscle;
   record.exercise = exercise;
   record.weight = weight;
+  record.unit = unit;
   record.reps = reps;
   record.sets = sets;
   record.updatedAt = new Date().toISOString();
@@ -411,8 +433,7 @@ function renderGroupedRecords(container, list, emptyText, options = {}) {
           <div class="item">
             <div class="item-head">
               <div class="item-main">
-                第 ${index + 1} 组 · ${escapeHTML(r.muscle)} · ${formatNumber(r.weight)}kg × ${formatNumber(r.reps)} × ${formatNumber(r.sets)}
-                <div class="item-sub">推测 1RM ${formatNumber(estimate1RM(r))}kg</div>
+                第 ${index + 1} 组 · ${escapeHTML(r.muscle)} · ${formatValue(r)} × ${formatNumber(r.reps)} × ${formatNumber(r.sets)}
               </div>
               ${actions}
             </div>
@@ -437,8 +458,12 @@ function renderEditForm(record) {
 
       <div class="edit-grid">
         <div>
-          <label class="edit-label">重量</label>
+          <label class="edit-label">数值</label>
           <input id="edit-weight-${record.id}" class="control compact" type="number" inputmode="decimal" value="${formatNumber(record.weight)}">
+        </div>
+        <div>
+          <label class="edit-label">单位</label>
+          <input id="edit-unit-${record.id}" class="control compact" value="${escapeHTML(record.unit || "kg")}">
         </div>
         <div>
           <label class="edit-label">次数</label>
@@ -686,61 +711,52 @@ function drawAnalysisBar(map) {
   });
 }
 
-function getPrList(list) {
+function getBestRecordList(list) {
   const best = {};
   list.forEach(r => {
-    const key = `${r.muscle}__${r.exercise}`;
-    const oneRm = estimate1RM(r);
+    const key = `${r.muscle}__${r.exercise}__${r.unit || "kg"}`;
     if (!best[key]) {
       best[key] = {
         muscle: r.muscle,
         exercise: r.exercise,
         weight: r.weight,
+        unit: r.unit || "kg",
         reps: r.reps,
         sets: r.sets,
-        date: r.date,
-        estimated1RM: oneRm,
-        maxWeight: r.weight,
-        maxWeightDate: r.date
+        date: r.date
       };
       return;
     }
 
-    if (oneRm > best[key].estimated1RM) {
+    if (r.weight > best[key].weight) {
       best[key].weight = r.weight;
+      best[key].unit = r.unit || "kg";
       best[key].reps = r.reps;
       best[key].sets = r.sets;
       best[key].date = r.date;
-      best[key].estimated1RM = oneRm;
-    }
-
-    if (r.weight > best[key].maxWeight) {
-      best[key].maxWeight = r.weight;
-      best[key].maxWeightDate = r.date;
     }
   });
-  return Object.values(best).sort((a, b) => b.estimated1RM - a.estimated1RM);
+  return Object.values(best).sort((a, b) => b.weight - a.weight);
 }
 
 function renderAnalysisPr(list) {
   const div = document.getElementById("analysisPrList");
   if (!div) return;
 
-  const prs = getPrList(list).slice(0, 8);
-  if (!prs.length) {
-    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">近${analysisRange}天暂无 PR 数据</div></div></div>`;
+  const bestRecords = getBestRecordList(list).slice(0, 8);
+  if (!bestRecords.length) {
+    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">近${analysisRange}天暂无最佳记录</div></div></div>`;
     return;
   }
 
   let html = `<div class="list">`;
-  prs.forEach(pr => {
+  bestRecords.forEach(record => {
     html += `
       <div class="item">
-        <div class="item-main">${escapeHTML(pr.exercise)} · ${formatNumber(pr.weight)}kg × ${formatNumber(pr.reps)}</div>
+        <div class="item-main">${escapeHTML(record.exercise)} · ${formatValue(record)} × ${formatNumber(record.reps)}</div>
         <div class="item-meta">
-          <span class="pill">${escapeHTML(pr.muscle)}</span>
-          <span class="pill">1RM ${formatNumber(pr.estimated1RM)}kg</span>
-          <span class="pill">${escapeHTML(pr.date)}</span>
+          <span class="pill">${escapeHTML(record.muscle)}</span>
+          <span class="pill">${escapeHTML(record.date)}</span>
         </div>
       </div>
     `;
@@ -789,6 +805,7 @@ function renderTrend() {
     .filter(r => r.exercise === ex)
     .sort((a, b) => `${a.date}-${a.id}`.localeCompare(`${b.date}-${b.id}`))
     .slice(-5);
+  const unit = data.find(d => d.unit)?.unit || "kg";
 
   if (trendChart) {
     trendChart.destroy();
@@ -801,7 +818,7 @@ function renderTrend() {
     data: {
       labels: data.map(d => d.date.slice(5)),
       datasets: [{
-        label: `${ex} 最近5次重量`,
+        label: `${ex} 最近5次数值`,
         data: data.map(d => d.weight),
         backgroundColor: "#2E7CF6",
         borderRadius: 8
@@ -814,11 +831,11 @@ function renderTrend() {
       plugins: {
         title: {
           display: true,
-          text: `${ex} 最近5次重量`
+          text: `${ex} 最近5次数值`
         },
         legend: { display: false },
         tooltip: {
-          callbacks: { label: ctx => `${ctx.raw} kg` }
+          callbacks: { label: ctx => `${ctx.raw} ${unit}` }
         },
         datalabels: {
           color: "#111",
@@ -848,23 +865,23 @@ function renderMax() {
     return;
   }
 
-  const prs = getPrList(records);
+  const bestRecords = getBestRecordList(records);
   const byMuscle = {};
-  prs.forEach(pr => {
-    if (!byMuscle[pr.muscle]) byMuscle[pr.muscle] = [];
-    byMuscle[pr.muscle].push(pr);
+  bestRecords.forEach(record => {
+    if (!byMuscle[record.muscle]) byMuscle[record.muscle] = [];
+    byMuscle[record.muscle].push(record);
   });
 
   let html = `<div class="list">`;
   Object.keys(byMuscle).sort((a, b) => a.localeCompare(b, "zh")).forEach(muscle => {
     html += `<div class="group-title">${escapeHTML(muscle)}</div>`;
     byMuscle[muscle]
-      .sort((a, b) => b.estimated1RM - a.estimated1RM)
-      .forEach(pr => {
+      .sort((a, b) => b.weight - a.weight)
+      .forEach(record => {
         html += `
           <div class="item">
-            <div class="item-main">${escapeHTML(pr.exercise)} · 最大 ${formatNumber(pr.maxWeight)}kg</div>
-            <div class="item-sub">最佳 1RM ${formatNumber(pr.estimated1RM)}kg · ${escapeHTML(pr.date)} · ${formatNumber(pr.weight)}kg × ${formatNumber(pr.reps)}</div>
+            <div class="item-main">${escapeHTML(record.exercise)} · 最大 ${formatValue(record)}</div>
+            <div class="item-sub">${escapeHTML(record.date)} · ${formatNumber(record.reps)} 次 · ${formatNumber(record.sets)} 组</div>
           </div>
         `;
       });
@@ -928,6 +945,7 @@ function renderAll() {
   renderHistory();
   renderAnalysis();
   renderMax();
+  updateUnitInput();
 }
 
 save();

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>训练日志</title>
 <link rel="manifest" href="manifest.json">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 </head>
@@ -22,7 +22,7 @@
   <button class="active" onclick="switchTab('today',this)">今日训练</button>
   <button onclick="switchTab('history',this)">历史记录</button>
   <button onclick="switchTab('analysis',this)">分析报告</button>
-  <button onclick="switchTab('max',this)">极限重量</button>
+  <button onclick="switchTab('max',this)">最佳记录</button>
 </nav>
 
 <!-- 今日训练 -->
@@ -47,8 +47,16 @@
     <select id="exerciseSelect" class="control"></select>
     <input id="exerciseInput" class="control hidden" placeholder="输入新动作">
 
-    <label class="label">重量 (kg)</label>
+    <label class="label">数值</label>
     <input id="weight" class="control" type="number" inputmode="decimal">
+
+    <label class="label">单位</label>
+    <select id="unitSelect" class="control" onchange="updateUnitInput()">
+      <option value="kg">kg</option>
+      <option value="米">米</option>
+      <option value="__custom__">自定义</option>
+    </select>
+    <input id="unitInput" class="control hidden" placeholder="输入单位">
 
     <label class="label">次数</label>
     <input id="reps" class="control" type="number" inputmode="numeric">
@@ -98,12 +106,12 @@
   </div>
 
   <div class="card">
-    <h2>动作 PR</h2>
+    <h2>动作最佳记录</h2>
     <div id="analysisPrList"></div>
   </div>
 
   <div class="card">
-    <h2>重量趋势（最近5次）</h2>
+    <h2>数值趋势（最近5次）</h2>
     <select id="trendSelect" class="control" onchange="renderTrend()"></select>
     <canvas id="trendChart"></canvas>
   </div>
@@ -113,7 +121,7 @@
 <!-- 极限 -->
 <section id="max" class="tab hidden">
   <div class="card">
-    <h2>极限重量</h2>
+    <h2>最佳记录</h2>
     <div id="maxList"></div>
   </div>
 
@@ -132,6 +140,6 @@
 
 </div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

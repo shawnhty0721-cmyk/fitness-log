@@ -275,7 +275,7 @@ button.danger-soft{
 
 .edit-grid{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
+  grid-template-columns:repeat(4, 1fr);
   gap:8px;
 }
 
@@ -469,5 +469,9 @@ canvas{
   .card-title-row{
     align-items:flex-start;
     flex-direction:column;
+  }
+
+  .edit-grid{
+    grid-template-columns:repeat(2, 1fr);
   }
 }
