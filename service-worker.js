@@ -1,4 +1,4 @@
-const CACHE_NAME = "fitness-log-v3";
+const CACHE_NAME = "fitness-log-v4";
 const LOCAL_ASSETS = [
   "./",
   "./index.html",

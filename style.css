@@ -244,38 +244,99 @@ canvas{
   max-height:260px;
 }
 
-.date-list{
+.calendar{
   margin-top:12px;
+  padding:12px;
+  border-radius:16px;
+  background:#f9fafb;
+  border:1px solid #edf0f3;
 }
 
-.date-list-title{
-  color:#8a8f98;
-  font-size:12px;
-  font-weight:700;
-}
-
-.date-chips{
+.calendar-head{
   display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-top:8px;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
 }
 
-.date-chip{
-  min-height:34px;
+.calendar-title{
+  font-size:14px;
+  font-weight:700;
+  color:#222;
+}
+
+.calendar-nav{
+  display:flex;
+  gap:6px;
+}
+
+.calendar-nav button{
+  width:34px;
+  height:34px;
   border:none;
-  border-radius:999px;
-  background:#f4f6f8;
+  border-radius:12px;
+  background:#eef2f7;
   color:#555;
-  padding:0 12px;
-  font-size:13px;
+  font-size:18px;
   font-weight:700;
   cursor:pointer;
 }
 
-.date-chip.active{
-  background:#e8f1ff;
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+  gap:6px;
+  margin-top:12px;
+}
+
+.calendar-weekday{
+  color:#8a8f98;
+  font-size:11px;
+  font-weight:700;
+  text-align:center;
+}
+
+.calendar-day{
+  position:relative;
+  aspect-ratio:1;
+  border:none;
+  border-radius:12px;
+  background:transparent;
+  color:#333;
+  font-size:13px;
+  font-weight:700;
+  cursor:default;
+}
+
+.calendar-day.has-record{
+  background:#eef6ff;
   color:#2E7CF6;
+  cursor:pointer;
+}
+
+.calendar-day.has-record::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:5px;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:#2E7CF6;
+  transform:translateX(-50%);
+}
+
+.calendar-day.active{
+  background:#2E7CF6;
+  color:#fff;
+}
+
+.calendar-day.active::after{
+  background:#fff;
+}
+
+.calendar-day.blank{
+  pointer-events:none;
 }
 
 /* 历史日期栏 */
@@ -290,29 +351,6 @@ canvas{
 .history-bar .control{
   margin-top:0;
   flex:1 1 160px;
-}
-
-.table-lite{
-  margin-top:14px;
-}
-
-.table-row{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:12px;
-  align-items:center;
-  padding:8px 0;
-}
-
-.table-row.header{
-  color:#8a8f98;
-  font-size:12px;
-  font-weight:700;
-}
-
-.table-row .value{
-  color:#111;
-  font-weight:700;
 }
 
 .data-actions{

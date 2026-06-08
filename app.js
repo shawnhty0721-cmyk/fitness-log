@@ -4,6 +4,7 @@ const BODY_PARTS = ["胸", "背", "腿", "肩", "手臂", "核心", "其他"];
 let records = loadRecords();
 let selectedHistoryDate = getLatestTrainingDate();
 let analysisRange = 7;
+let historyMonth = selectedHistoryDate ? selectedHistoryDate.slice(0, 7) : todayStr().slice(0, 7);
 
 let analysisChart = null;
 let trendChart = null;
@@ -325,6 +326,7 @@ function afterDelete() {
   const latest = getLatestTrainingDate();
   if (!records.length) selectedHistoryDate = "";
   else if (!records.some(r => r.date === selectedHistoryDate)) selectedHistoryDate = latest;
+  historyMonth = selectedHistoryDate ? selectedHistoryDate.slice(0, 7) : todayStr().slice(0, 7);
   renderAll();
 }
 
@@ -380,17 +382,20 @@ function renderToday() {
 function onHistoryDateChange() {
   const input = document.getElementById("historyDate");
   selectedHistoryDate = input?.value || "";
+  if (selectedHistoryDate) historyMonth = selectedHistoryDate.slice(0, 7);
   renderHistory();
 }
 
 function jumpToLatestHistoryDate() {
   selectedHistoryDate = getLatestTrainingDate();
+  if (selectedHistoryDate) historyMonth = selectedHistoryDate.slice(0, 7);
   renderHistory();
 }
 
 function ensureHistoryDefaultDate() {
   if (selectedHistoryDate && records.some(r => r.date === selectedHistoryDate)) return;
   selectedHistoryDate = getLatestTrainingDate();
+  if (selectedHistoryDate) historyMonth = selectedHistoryDate.slice(0, 7);
 }
 
 function renderHistory() {
@@ -421,6 +426,14 @@ function getTrainingDates() {
 
 function selectHistoryDate(date) {
   selectedHistoryDate = date;
+  historyMonth = date.slice(0, 7);
+  renderHistory();
+}
+
+function shiftHistoryMonth(offset) {
+  const [year, month] = historyMonth.split("-").map(Number);
+  const d = new Date(year, month - 1 + offset, 1);
+  historyMonth = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
   renderHistory();
 }
 
@@ -428,21 +441,50 @@ function renderHistoryDateList() {
   const div = document.getElementById("historyDateList");
   if (!div) return;
 
-  const dates = getTrainingDates();
-  if (!dates.length) {
+  const dateSet = new Set(getTrainingDates());
+  if (!dateSet.size) {
     div.innerHTML = "";
     return;
   }
 
+  const [year, month] = historyMonth.split("-").map(Number);
+  const first = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const startBlank = first.getDay();
+  const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+
   let html = `
-    <div class="date-list">
-      <div class="date-list-title">有记录日期</div>
-      <div class="date-chips">
+    <div class="calendar">
+      <div class="calendar-head">
+        <div class="calendar-title">${year}年${month}月</div>
+        <div class="calendar-nav">
+          <button onclick="shiftHistoryMonth(-1)" aria-label="上个月">‹</button>
+          <button onclick="shiftHistoryMonth(1)" aria-label="下个月">›</button>
+        </div>
+      </div>
+      <div class="calendar-grid">
   `;
-  dates.forEach(date => {
-    const active = date === selectedHistoryDate ? " active" : "";
-    html += `<button class="date-chip${active}" onclick="selectHistoryDate('${date}')">${date.slice(5)}</button>`;
+  weekdays.forEach(day => {
+    html += `<div class="calendar-weekday">${day}</div>`;
   });
+
+  for (let i = 0; i < startBlank; i++) {
+    html += `<div class="calendar-day blank"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${historyMonth}-${pad2(day)}`;
+    const hasRecord = dateSet.has(date);
+    const active = date === selectedHistoryDate;
+    const classes = [
+      "calendar-day",
+      hasRecord ? "has-record" : "",
+      active ? "active" : ""
+    ].filter(Boolean).join(" ");
+    const action = hasRecord ? ` onclick="selectHistoryDate('${date}')"` : "";
+    html += `<button class="${classes}"${action}>${day}</button>`;
+  }
+
   html += `</div></div>`;
   div.innerHTML = html;
 }
@@ -497,7 +539,6 @@ function renderAnalysis() {
   if (daysEl) daysEl.textContent = String(getTrainingDaysCount(rangeRecords));
 
   drawAnalysisBar(counts);
-  renderAnalysisTable(counts);
   renderAnalysisPr(rangeRecords);
   renderTrendSelect();
 }
@@ -557,27 +598,6 @@ function drawAnalysisBar(map) {
       }
     }
   });
-}
-
-function renderAnalysisTable(map) {
-  const div = document.getElementById("analysisTable");
-  if (!div) return;
-
-  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) {
-    div.innerHTML = `<div class="list"><div class="item"><div class="item-main">近${analysisRange}天暂无训练记录</div></div></div>`;
-    return;
-  }
-
-  let html = `
-    <div class="table-lite">
-      <div class="table-row header"><div>部位</div><div>训练次数</div></div>
-  `;
-  entries.forEach(([muscle, count]) => {
-    html += `<div class="table-row"><div>${escapeHTML(muscle)}</div><div class="value">${count} 次</div></div>`;
-  });
-  html += `</div>`;
-  div.innerHTML = html;
 }
 
 function getPrList(list) {
