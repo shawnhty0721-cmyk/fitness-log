@@ -5,6 +5,7 @@ let records = loadRecords();
 let selectedHistoryDate = getLatestTrainingDate();
 let analysisRange = 7;
 let historyMonth = selectedHistoryDate ? selectedHistoryDate.slice(0, 7) : todayStr().slice(0, 7);
+let editingRecordId = null;
 
 let analysisChart = null;
 let trendChart = null;
@@ -95,7 +96,8 @@ function normalizeItem(item, fallbackDate) {
     weight,
     reps,
     sets,
-    createdAt: item.createdAt || `${date}T00:00:00`
+    createdAt: item.createdAt || `${date}T00:00:00`,
+    updatedAt: item.updatedAt || ""
   };
 }
 
@@ -308,7 +310,46 @@ function addRecord() {
 function deleteRecord(id) {
   if (!confirm("确定删除这条记录？")) return;
   records = records.filter(r => r.id !== id);
+  if (editingRecordId === id) editingRecordId = null;
   afterDelete();
+}
+
+function startEditRecord(id) {
+  editingRecordId = id;
+  renderAll();
+}
+
+function cancelEditRecord() {
+  editingRecordId = null;
+  renderAll();
+}
+
+function updateRecord(id) {
+  const record = records.find(r => r.id === id);
+  if (!record) return;
+
+  const muscle = document.getElementById(`edit-muscle-${id}`)?.value?.trim() || "";
+  const exercise = document.getElementById(`edit-exercise-${id}`)?.value?.trim() || "";
+  const weight = Number(document.getElementById(`edit-weight-${id}`)?.value);
+  const reps = Number(document.getElementById(`edit-reps-${id}`)?.value);
+  const sets = Number(document.getElementById(`edit-sets-${id}`)?.value);
+
+  if (!muscle || !exercise || weight <= 0 || reps <= 0 || sets <= 0) {
+    alert("请填写完整，并确保训练部位、动作、重量、次数、组数都有效");
+    return;
+  }
+
+  record.muscle = muscle;
+  record.bodyPart = muscle;
+  record.exercise = exercise;
+  record.weight = weight;
+  record.reps = reps;
+  record.sets = sets;
+  record.updatedAt = new Date().toISOString();
+
+  editingRecordId = null;
+  save();
+  renderAll();
 }
 
 function deleteSelectedDay() {
@@ -339,7 +380,7 @@ function groupByExercise(list) {
   return groups;
 }
 
-function renderGroupedRecords(container, list, emptyText) {
+function renderGroupedRecords(container, list, emptyText, options = {}) {
   if (!list.length) {
     container.innerHTML = `<div class="list"><div class="item"><div class="item-main">${emptyText}</div></div></div>`;
     return;
@@ -354,6 +395,18 @@ function renderGroupedRecords(container, list, emptyText) {
     groups[ex]
       .sort((a, b) => a.id - b.id)
       .forEach((r, index) => {
+        const editable = options.editable;
+        const editing = editable && editingRecordId === r.id;
+        const actions = editable
+          ? `
+              <div class="item-actions">
+                <button class="link-btn" onclick="startEditRecord(${r.id})">编辑</button>
+                <button class="link-btn danger" onclick="deleteRecord(${r.id})">删除</button>
+              </div>
+            `
+          : `<button class="link-btn danger" onclick="deleteRecord(${r.id})">删除</button>`;
+        const editForm = editing ? renderEditForm(r) : "";
+
         html += `
           <div class="item">
             <div class="item-head">
@@ -361,8 +414,9 @@ function renderGroupedRecords(container, list, emptyText) {
                 第 ${index + 1} 组 · ${escapeHTML(r.muscle)} · ${formatNumber(r.weight)}kg × ${formatNumber(r.reps)} × ${formatNumber(r.sets)}
                 <div class="item-sub">推测 1RM ${formatNumber(estimate1RM(r))}kg</div>
               </div>
-              <div class="delete-btn" onclick="deleteRecord(${r.id})">删除</div>
+              ${actions}
             </div>
+            ${editForm}
           </div>
         `;
       });
@@ -370,6 +424,38 @@ function renderGroupedRecords(container, list, emptyText) {
 
   html += `</div>`;
   container.innerHTML = html;
+}
+
+function renderEditForm(record) {
+  return `
+    <div class="edit-form">
+      <label class="edit-label">训练部位</label>
+      <input id="edit-muscle-${record.id}" class="control compact" value="${escapeHTML(record.muscle)}">
+
+      <label class="edit-label">动作名称</label>
+      <input id="edit-exercise-${record.id}" class="control compact" value="${escapeHTML(record.exercise)}">
+
+      <div class="edit-grid">
+        <div>
+          <label class="edit-label">重量</label>
+          <input id="edit-weight-${record.id}" class="control compact" type="number" inputmode="decimal" value="${formatNumber(record.weight)}">
+        </div>
+        <div>
+          <label class="edit-label">次数</label>
+          <input id="edit-reps-${record.id}" class="control compact" type="number" inputmode="numeric" value="${formatNumber(record.reps)}">
+        </div>
+        <div>
+          <label class="edit-label">组数</label>
+          <input id="edit-sets-${record.id}" class="control compact" type="number" inputmode="numeric" value="${formatNumber(record.sets)}">
+        </div>
+      </div>
+
+      <div class="edit-actions">
+        <button class="small-primary" onclick="updateRecord(${record.id})">保存</button>
+        <button class="small-ghost" onclick="cancelEditRecord()">取消</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderToday() {
@@ -416,7 +502,7 @@ function renderHistory() {
     .filter(r => r.date === selectedHistoryDate)
     .sort((a, b) => `${a.exercise}-${a.id}`.localeCompare(`${b.exercise}-${b.id}`, "zh"));
 
-  renderGroupedRecords(div, dayRecords, "该日期暂无记录");
+  renderGroupedRecords(div, dayRecords, "该日期暂无记录", { editable: true });
 }
 
 function getTrainingDates() {

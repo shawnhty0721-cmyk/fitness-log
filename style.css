@@ -101,6 +101,14 @@ body{
   font-size:15px;
 }
 
+.control.compact{
+  height:40px;
+  margin-top:5px;
+  padding:9px 11px;
+  border-radius:12px;
+  font-size:14px;
+}
+
 .hidden{ display:none; }
 
 button.primary{
@@ -225,12 +233,78 @@ button.danger-soft{
   color:#222;
 }
 
-.delete-btn{
-  color:#ff4d4f;
+.item-actions{
+  display:flex;
+  gap:8px;
+  flex:0 0 auto;
+}
+
+.link-btn{
+  border:none;
+  background:transparent;
+  color:#2E7CF6;
   font-size:13px;
   font-weight:600;
   cursor:pointer;
-  flex:0 0 auto;
+  padding:0;
+}
+
+.link-btn.danger{
+  color:#ff4d4f;
+}
+
+.edit-form{
+  margin-top:10px;
+  padding:12px;
+  border-radius:16px;
+  background:#f9fafb;
+  border:1px solid #edf0f3;
+}
+
+.edit-label{
+  display:block;
+  margin-top:8px;
+  color:#69707a;
+  font-size:12px;
+  font-weight:700;
+}
+
+.edit-label:first-child{
+  margin-top:0;
+}
+
+.edit-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:8px;
+}
+
+.edit-actions{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+
+.small-primary,
+.small-ghost{
+  height:38px;
+  padding:0 14px;
+  border-radius:13px;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.small-primary{
+  border:none;
+  background:#2E7CF6;
+  color:#fff;
+}
+
+.small-ghost{
+  border:1px solid #e3e7ec;
+  background:#fff;
+  color:#555;
 }
 
 .metric{
